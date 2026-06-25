@@ -1,0 +1,50 @@
+{
+  "placeholders": {
+    "{{CONFIG_PATH}}": "~/.codeedict/codeedict-config.json",
+    "{{AGENT_DIR}}": "%APPDATA%\\Code\\User\\agents\\codeedict",
+    "{{EDIT_CMD}}": "edit",
+    "{{READ_CMD}}": "read"
+  },
+  "agents": {
+    "codeedict": {
+      "name": "Codeedict",
+      "description": "AI码律 主调度 Agent。路由用户意图到 Code/Analyze/Clarify 三模式，协调子 Agent 执行，状态机硬约束保障流程。",
+      "model": "deepseek-v4-pro",
+      "tools": ["agent", "read", "search", "edit", "mcp_codeedict-gate"],
+      "agents": ["codeedict-analyst", "codeedict-coder", "codeedict-proposal-reviewer", "codeedict-code-reviewer"],
+      "user-invocable": true
+    },
+    "codeedict-analyst": {
+      "name": "codeedict-analyst",
+      "description": "🔍 AI码律 分析师。只读分析，不改代码。定位建模，产出结构化分析报告。",
+      "model": "deepseek-v4-pro",
+      "tools": ["read", "search", "mcp_codeedict-gate"],
+      "user-invocable": false,
+      "disable-model-invocation": false
+    },
+    "codeedict-coder": {
+      "name": "codeedict-coder",
+      "description": "🔨 AI码律 程序员。严格按 proposal 编码，不越界。受状态机和文件范围约束。",
+      "model": "deepseek-v4-pro",
+      "tools": ["edit", "read", "search", "mcp_codeedict-gate"],
+      "user-invocable": false,
+      "disable-model-invocation": false
+    },
+    "codeedict-proposal-reviewer": {
+      "name": "codeedict-proposal-reviewer",
+      "description": "🛡️ AI码律 方案审查官。对立审查方案文档（七角度反驳：目标/成本/风险/长期收益/异常路径/安全/回滚）。",
+      "model": "deepseek-v4-pro",
+      "tools": ["read", "search", "mcp_codeedict-gate"],
+      "user-invocable": false,
+      "disable-model-invocation": false
+    },
+    "codeedict-code-reviewer": {
+      "name": "codeedict-code-reviewer",
+      "description": "⚖️ AI码律 代码审查官。逐项对账 proposal vs 实际产出，偏离裁决，展示提交计划。",
+      "model": "deepseek-v4-pro",
+      "tools": ["edit", "read", "search", "mcp_codeedict-gate"],
+      "user-invocable": false,
+      "disable-model-invocation": false
+    }
+  }
+}

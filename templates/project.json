@@ -1,0 +1,19 @@
+{
+  "projectId": "",
+  "name": "",
+  "type": "",
+  "path": "",
+  "summary": "",
+  "entryPoints": [],
+  "initialized": false,
+  "git": true,
+  "createdAt": "",
+  "toolchain": {
+    "build": "",
+    "watch": "",
+    "deploy": "",
+    "lint": "",
+    "test": "",
+    "debug": ""
+  }
+}
