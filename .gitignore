@@ -9,3 +9,4 @@ userlog/
 Thumbs.db
 *.swp
 .env*
+.codebuddy/
