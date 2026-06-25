@@ -119,6 +119,6 @@ AI自行判断当前使用的 AI 编辑器，无需询问用户：
 
 ### 6. 验证并告知用户
 
-验证文件齐全后告知：安装完成。CodeBuddy 用户在聊天框左下角选择 Codeedict 开始使用；VS Code 用户在 Copilot Chat 中选择 Codeedict agent。
+**必做：验证 MCP 服务是否正常。** 执行 `node <build-dir>/check.js --help` 或 `node <build-dir>/check.js status`，确保无报错。如果报错（如 BOM 导致的 JSON 解析失败），修复后重试。
 
-安装完成。CodeBuddy 用户在聊天框左下角选择 Codeedict 开始使用；VS Code 用户在 Copilot Chat 中选择 Codeedict agent。
+验证通过后告知：安装完成。CodeBuddy 用户在聊天框左下角选择 Codeedict 开始使用；VS Code 用户在 Copilot Chat 中选择 Codeedict agent。

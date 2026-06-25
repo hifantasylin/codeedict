@@ -20,7 +20,8 @@ function _detectWorkspace() {
     if (!fs.existsSync(configPath)) {
         throw new Error(`配置文件不存在: ${configPath}\n请先安装 AI码律`);
     }
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const raw = fs.readFileSync(configPath, 'utf-8').replace(/^\uFEFF/, '');
+    const config = JSON.parse(raw);
     if (!config.workspacePath) {
         throw new Error(`配置文件中缺少 workspacePath: ${configPath}`);
     }
@@ -52,7 +53,7 @@ const Stage = {
 };
 
 const STAGE_TRANSITIONS = {
-    [Stage.Clarify]:   new Set([Stage.Proposal, Stage.Review, Stage.Cancelled]),
+    [Stage.Clarify]:   new Set([Stage.Proposal, Stage.Review, Stage.Analyze, Stage.Cancelled]),
     [Stage.Proposal]:  new Set([Stage.Review, Stage.Analyze, Stage.Cancelled]),
     [Stage.Review]:    new Set([Stage.Analyze, Stage.Code, Stage.Archive, Stage.Cancelled]),
     [Stage.Analyze]:   new Set([Stage.Review, Stage.Cancelled]),
@@ -71,9 +72,9 @@ const WRITE_ALLOWED_STAGES = new Set([Stage.Code]);
 
 function _loadState(taskId) {
     const newPath = path.join(TASK_STATES_DIR, `${taskId}.json`);
-    if (fs.existsSync(newPath)) return JSON.parse(fs.readFileSync(newPath, 'utf-8'));
+    if (fs.existsSync(newPath)) return JSON.parse(fs.readFileSync(newPath, 'utf-8').replace(/^\uFEFF/, ''));
     const oldPath = path.join(WORKSPACE, 'states', `${taskId}.json`);
-    if (fs.existsSync(oldPath)) return JSON.parse(fs.readFileSync(oldPath, 'utf-8'));
+    if (fs.existsSync(oldPath)) return JSON.parse(fs.readFileSync(oldPath, 'utf-8').replace(/^\uFEFF/, ''));
     return null;
 }
 
@@ -103,11 +104,12 @@ function _readProposal(taskId) {
 function _ok(data) { return { ...data, allowed: true }; }
 function _block(reason) { return { allowed: false, blocked: reason }; }
 
-function cmdInit(taskId, proposalPath = '') {
+function cmdInit(taskId, proposalPath = '', initialStage = '') {
+    const stage = Object.values(Stage).includes(initialStage) ? initialStage : Stage.Clarify;
     const now = Math.floor(Date.now() / 1000);
-    const state = { task_id: taskId, stage: Stage.Clarify, workflow: '', checkpoints: {}, created_at: now, updated_at: now, proposal_path: proposalPath };
+    const state = { task_id: taskId, stage, workflow: '', checkpoints: {}, created_at: now, updated_at: now, proposal_path: proposalPath };
     _saveState(taskId, state);
-    return _ok({ task_id: taskId, stage: Stage.Clarify, message: `任务 ${taskId} 已创建，当前阶段 clarify` });
+    return _ok({ task_id: taskId, stage, message: `任务 ${taskId} 已创建，当前阶段 ${stage}` });
 }
 
 function cmdStage(taskId, newStage) {
@@ -266,8 +268,8 @@ const MCP_TOOLS = [
     },
     {
         name: 'codeedict_init',
-        description: '初始化新任务，创建状态文件并进入 clarify 阶段。可选传入 proposal 路径。',
-        inputSchema: { type: 'object', properties: { task_id: { type: 'string', description: '任务 ID，格式 projectId-B/F/R/A编号-简短描述' }, proposal_path: { type: 'string', description: '可选，proposal 文件路径' } }, required: ['task_id'] },
+        description: '初始化新任务，创建状态文件。可指定初始阶段（默认 clarify，分析类任务应传 analyze）。',
+        inputSchema: { type: 'object', properties: { task_id: { type: 'string', description: '任务 ID，格式 projectId-B/F/R/A编号-简短描述' }, proposal_path: { type: 'string', description: '可选，proposal 文件路径' }, initial_stage: { type: 'string', description: '可选，初始阶段。分析类任务传 analyze，修改类任务默认 clarify' } }, required: ['task_id'] },
     },
 ];
 
@@ -315,7 +317,7 @@ function handleMcpMessage(msg) {
             else if (toolName === 'codeedict_reviewed') result = cmdReviewed(taskId);
             else if (toolName === 'codeedict_rejected') result = cmdRejected(taskId, toolArgs.reason);
             else if (toolName === 'codeedict_approve') result = cmdApprove(taskId, toolArgs.checkpoint);
-            else if (toolName === 'codeedict_init') result = cmdInit(taskId, toolArgs.proposal_path || '');
+            else if (toolName === 'codeedict_init') result = cmdInit(taskId, toolArgs.proposal_path || '', toolArgs.initial_stage || '');
             else result = { error: `unknown tool: ${toolName}` };
         } catch (e) {
             result = { error: e.message };
@@ -358,7 +360,7 @@ if (require.main === module) {
         const cmd = args[0];
         const taskId = args[1] || '';
         let result;
-        if (cmd === 'init') result = cmdInit(taskId, args[2] || '');
+        if (cmd === 'init') result = cmdInit(taskId, args[2] || '', args[3] || '');
         else if (cmd === 'stage' && args.length >= 3) result = cmdStage(taskId, args[2]);
         else if (cmd === 'write' && args.length >= 3) result = cmdWrite(taskId, args[2]);
         else if (cmd === 'status') result = cmdStatus(taskId);

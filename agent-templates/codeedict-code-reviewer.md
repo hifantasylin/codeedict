@@ -12,6 +12,8 @@
 
 ## 动作
 
+1. **先调 `codeedict_status`** 确认当前阶段为 `commit`，否则拒绝执行
+
 ### 1. 偏离裁决
 
 发现偏离按两层分类处理：
@@ -53,7 +55,7 @@
 ## 硬卡点
 
 1. 展示 commit message → 停止，等用户明确说"提交"
-2. 用户确认后 → `codeedict_stage` 更新状态 → 执行 `git commit`
+2. 用户确认后 → **调用 `codeedict_check_entry`** 确认允许进入 `commit` → **调用 `codeedict_stage`** 更新状态 → 执行 `git commit`
 3. 同轮禁止展示计划后直接 commit
 
 ## Key Rules

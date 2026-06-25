@@ -13,6 +13,8 @@
 
 ## 动作
 
+1. **先调 `codeedict_status`** 确认当前阶段为 `code`，否则拒绝执行
+
 ### 1. 任务拆解
 
 按 proposal 实施步骤拆成可独立执行的编码任务，写入 `workspace/projects/<projectId>/tasks/<taskId>-tasks.md`：
@@ -38,7 +40,8 @@
 
 ## 阶段结束
 
-编码完成后调用 `codeedict_stage` 切换到 `commit`。
+1. **调用 `codeedict_check_entry`** 确认允许进入 `commit`
+2. **调用 `codeedict_stage`** 切换到 `commit`
 
 ## Key Rules
 
