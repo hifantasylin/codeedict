@@ -19,7 +19,7 @@
       "name": "codeedict-analyst",
       "description": "🔍 AI码律 分析师。只读分析，不改代码。定位建模，产出结构化分析报告。触发：主 Agent 在 Analyze 阶段 delegate 到此子 Agent。",
       "model": "deepseek-v4-pro",
-      "tools": ["list_dir", "search_file", "search_content", "read_file", "mcp_codeedict-gate"],
+      "tools": ["list_dir", "search_file", "search_content", "read_file", "write_to_file", "replace_in_file", "mcp_codeedict-gate"],
       "agentMode": "agentic",
       "enabled": true,
       "enabledAutoRun": true
@@ -37,7 +37,7 @@
       "name": "codeedict-proposal-reviewer",
       "description": "🛡️ AI码律 方案审查官。对立审查方案文档（七角度反驳：目标/成本/风险/长期收益/异常路径/安全/回滚）。触发：主 Agent 在 Review 阶段 delegate 到此子 Agent。",
       "model": "deepseek-v4-pro",
-      "tools": ["list_dir", "search_file", "search_content", "read_file", "mcp_codeedict-gate"],
+      "tools": ["list_dir", "search_file", "search_content", "read_file", "replace_in_file", "mcp_codeedict-gate"],
       "agentMode": "agentic",
       "enabled": true,
       "enabledAutoRun": true

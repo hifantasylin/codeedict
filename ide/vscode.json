@@ -18,7 +18,7 @@
       "name": "codeedict-analyst",
       "description": "🔍 AI码律 分析师。只读分析，不改代码。定位建模，产出结构化分析报告。",
       "model": "deepseek-v4-pro",
-      "tools": ["read", "search", "mcp_codeedict-gate"],
+      "tools": ["edit", "read", "search", "mcp_codeedict-gate"],
       "user-invocable": false,
       "disable-model-invocation": false
     },
@@ -34,7 +34,7 @@
       "name": "codeedict-proposal-reviewer",
       "description": "🛡️ AI码律 方案审查官。对立审查方案文档（七角度反驳：目标/成本/风险/长期收益/异常路径/安全/回滚）。",
       "model": "deepseek-v4-pro",
-      "tools": ["read", "search", "mcp_codeedict-gate"],
+      "tools": ["edit", "read", "search", "mcp_codeedict-gate"],
       "user-invocable": false,
       "disable-model-invocation": false
     },

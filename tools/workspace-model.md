@@ -34,7 +34,8 @@
 | `pending-issues.md` | 全局待处理问题 | 主 Agent 读写 |
 | `project.json` | 工具链配置（编译、Lint、部署命令） | Coder/ Analyst 只读 |
 | `task-tracker.md` | 项目活跃任务列表 | Coder 更新 |
-| `proposals/<taskId>.md` | 六段式方案文档（只读不可改） | Clarify 写入，Coder/Reviewer 只读 |
+| `proposals/<taskId>.md` | 六段式方案文档（只读不可改） | 主 Agent（Clarify 阶段）/ Analyst 写入，Coder/Reviewer 只读 |
 | `docs/<taskId>-analysis.md` | 结构化分析报告 | Analyst 写入，Proposal-Reviewer 只读 |
 | `tasks/<taskId>-tasks.md` | 编码任务拆解清单 | Coder 写入，Code-Reviewer 只读 |
-| `archive/index.md` | 已归档任务索引（不搬运文件，只记索引行） | Archive 阶段追加 |
+| `archive/index.md` | 已归档任务索引（不搬运文件，只记索引行） | 主 Agent 追加 |
+| `docs/<taskId>-requirements.md` | 需求澄清文档 | 主 Agent（Clarify 阶段）写入，Analyst 只读 |
