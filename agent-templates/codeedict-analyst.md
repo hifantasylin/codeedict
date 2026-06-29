@@ -28,12 +28,16 @@
 | 来源 | 内容 | 路径 |
 |------|------|------|
 | 主 Agent | `task_id`、任务性质（修改意图 / 纯分析） | — |
+| 文件 | 项目架构惯例（强制首读） | `workspace/projects/<projectId>/project-patterns.md` |
 | 文件 | 项目工具链配置 | `workspace/projects/<projectId>/project.json` |
 | 文件（Clarify 转入） | 需求说明文档 | `workspace/projects/<projectId>/docs/<taskId>-requirements.md` |
 
 ## 执行流程
 
-1. **复审（如有）**
+1. **读项目架构地图**（强制第一步）
+   读 `workspace/projects/<projectId>/project-patterns.md`，掌握可复用组件、命名规则、分层约束、反模式清单。方案中的复用评估和备选方案必须基于此文档。
+
+2. **复审（如有）**
    读文档末尾 `审查报告 vN`，逐条过 `## 质疑` + `## 结论`，确修正方案。
    > 修正方案内容，但**保留**文档末尾 `---` 分隔线之下的审查报告，不要删除。
 

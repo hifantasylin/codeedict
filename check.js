@@ -104,7 +104,17 @@ function _readProposal(taskId) {
 function _ok(data) { return { ...data, allowed: true }; }
 function _block(reason) { return { allowed: false, blocked: reason }; }
 
-function cmdInit(taskId, proposalPath = '', initialStage = '') {
+function cmdInit(taskId, proposalPath = '', initialStage = '', projectId = '') {
+    // 项目就绪门禁：传了 project_id 则检查项目 workspace 是否已初始化
+    if (projectId) {
+        const projectDir = path.join(PROJECTS_DIR, projectId);
+        const projectJson = path.join(projectDir, 'project.json');
+        if (!fs.existsSync(projectJson)) {
+            return { allowed: false, blocked: 'project_not_initialized', project_id: projectId, project_dir: projectDir,
+                message: `项目 ${projectId} 尚未初始化，workspace 数据目录不存在。请先执行项目初始化。`,
+                hint: '运行项目初始化流程：探测工具链 + 扫描架构惯例 + 创建 workspace 目录骨架' };
+        }
+    }
     const stage = Object.values(Stage).includes(initialStage) ? initialStage : Stage.Clarify;
     const now = Math.floor(Date.now() / 1000);
     const state = { task_id: taskId, stage, workflow: '', checkpoints: {}, created_at: now, updated_at: now, proposal_path: proposalPath };
@@ -268,8 +278,8 @@ const MCP_TOOLS = [
     },
     {
         name: 'codeedict_init',
-        description: '初始化新任务，创建状态文件。可指定初始阶段（默认 clarify，分析类任务应传 analyze）。',
-        inputSchema: { type: 'object', properties: { task_id: { type: 'string', description: '任务 ID，格式 projectId-B/F/R/A编号-简短描述' }, proposal_path: { type: 'string', description: '可选，proposal 文件路径' }, initial_stage: { type: 'string', description: '可选，初始阶段。分析类任务传 analyze，修改类任务默认 clarify' } }, required: ['task_id'] },
+        description: '初始化新任务，创建状态文件。可指定初始阶段（默认 clarify，分析类任务应传 analyze）。传 project_id 会先检查项目 workspace 是否就绪，未就绪则返回 blocked=project_not_initialized 拒绝创建。',
+        inputSchema: { type: 'object', properties: { task_id: { type: 'string', description: '任务 ID，格式 projectId-B/F/R/A编号-简短描述' }, proposal_path: { type: 'string', description: '可选，proposal 文件路径' }, initial_stage: { type: 'string', description: '可选，初始阶段。分析类任务传 analyze，修改类任务默认 clarify' }, project_id: { type: 'string', description: '可选。传入后强制检查项目 workspace 是否已初始化（project.json 是否存在），未就绪则拒绝创建任务' } }, required: ['task_id'] },
     },
 ];
 
@@ -317,7 +327,7 @@ function handleMcpMessage(msg) {
             else if (toolName === 'codeedict_reviewed') result = cmdReviewed(taskId);
             else if (toolName === 'codeedict_rejected') result = cmdRejected(taskId, toolArgs.reason);
             else if (toolName === 'codeedict_approve') result = cmdApprove(taskId, toolArgs.checkpoint);
-            else if (toolName === 'codeedict_init') result = cmdInit(taskId, toolArgs.proposal_path || '', toolArgs.initial_stage || '');
+            else if (toolName === 'codeedict_init') result = cmdInit(taskId, toolArgs.proposal_path || '', toolArgs.initial_stage || '', toolArgs.project_id || '');
             else result = { error: `unknown tool: ${toolName}` };
         } catch (e) {
             result = { error: e.message };
@@ -333,6 +343,12 @@ function handleMcpMessage(msg) {
 function sendMcp(data) {
     process.stdout.write(JSON.stringify(data) + '\n');
 }
+
+// ══════════════════════════════════════════════════════════
+//  导出（供测试使用）
+// ══════════════════════════════════════════════════════════
+
+module.exports = { cmdInit, cmdStage, cmdWrite, cmdStatus, cmdCheckEntry, cmdTransitions, cmdApprove, cmdReviewed, cmdRejected, Stage, WORKSPACE, PROJECTS_DIR, TASK_STATES_DIR };
 
 // ══════════════════════════════════════════════════════════
 //  CLI 入口
@@ -360,7 +376,7 @@ if (require.main === module) {
         const cmd = args[0];
         const taskId = args[1] || '';
         let result;
-        if (cmd === 'init') result = cmdInit(taskId, args[2] || '', args[3] || '');
+        if (cmd === 'init') result = cmdInit(taskId, args[2] || '', args[3] || '', args[4] || '');
         else if (cmd === 'stage' && args.length >= 3) result = cmdStage(taskId, args[2]);
         else if (cmd === 'write' && args.length >= 3) result = cmdWrite(taskId, args[2]);
         else if (cmd === 'status') result = cmdStatus(taskId);

@@ -61,7 +61,8 @@
 | 修/改/加/bug/fix/crash/不工作/实现/开发/新增/feat/优化/重构 | Analyze 入口 → Code 入口 | 需求明确 |
 | 分析/排查/看流程/定位/调研 | Analyze 入口 | 只读分析 |
 | 梳理/整理思路/有个想法/不太成熟/讨论 | Clarify 入口 | 需求模糊 |
-| 新项目/初始化项目/登记项目/扫描项目 | 项目初始化 | 登记工具链 |
+| 新项目/初始化项目/登记项目/扫描项目 | 项目初始化 | 登记工具链 + 扫描架构惯例 |
+| 刷新规范/更新规范/同步规范 | 规范刷新 | 重新扫描项目架构惯例 |
 | 周报/本周/本周报告/最近/这周 | Weekly | 只读汇总 |
 | 审查/审核/评审/review | review 入口 | 单独审查 |
 | 意图模糊 | 追问 | "想修Bug/做功能，还是只分析了解？" |
@@ -125,6 +126,20 @@
 4. 写入 `workspace/projects/<projectId>/project.json`
 5. 在 `workspace/projects/projects.md` 登记项目
 6. 从 `templates/` 复制 `pending-issues.md`、`archive-index.md` 等骨架
+7. **扫描架构惯例 + 违规发现**：
+   - 搜索项目代码中重复出现的命名/分层/继承模式
+   - 按 `templates/project-patterns.md` 模板写入 `workspace/projects/<projectId>/project-patterns.md`
+   - 同时扫描违反以上惯例的代码，按 `待处理问题` 格式追加到 `workspace/projects/<projectId>/pending-issues.md`（类型=架构合规，来源=🏗️初始化扫描）
+   - 向用户展示惯例 + 违规列表，确认后保存
+
+### 🔄 规范刷新
+
+不切换状态机。用户指令 `刷新规范 <projectId>`：
+
+1. 重新扫描项目源码，更新 `workspace/projects/<projectId>/project-patterns.md`
+2. 对比上次版本，高亮新增/变更/删除的惯例
+3. 同时扫描违规项：已修复的 → 标记为"已修复"，新增的 → 追加到 `pending-issues.md`
+4. 展示差异 + 违规变化，用户确认后保存
 
 ### 💡 Clarify 入口
 
@@ -132,7 +147,8 @@
 
 仅处理**需求模糊**（梳理/有个想法/不太成熟/讨论）。**只做需求澄清，不读代码、不写方案。**
 
-1. 调用 `codeedict_init`（`initial_stage` = `clarify`），宣布 `💡 进入需求澄清阶段`
+1. 调用 `codeedict_init`（`initial_stage` = `clarify`，`project_id` = `<projectId>`），宣布 `💡 进入需求澄清阶段`
+   - 若返回 `blocked: project_not_initialized` → 先执行 🏗️ 项目初始化（静默），完成后重试 `codeedict_init`
 2. 以"需求梳理者"人格逐轮追问（3–5 轮），覆盖：做什么、谁用、场景、边界、技术约束
 3. 需求确认 → 写入 `workspace/projects/<projectId>/docs/<taskId>-requirements.md`
 4. 调用 `codeedict_stage` 切换到 `analyze`，宣布 `🔍 转入分析阶段`
@@ -143,7 +159,8 @@
 统一主入口，处理所有明确需求。两种进入路径：
 
 **直接进入**（需求明确：修bug / 做功能 / 分析排查）：
-1. 调用 `codeedict_init`（`initial_stage` = `analyze`），宣布 `🔍 进入分析阶段`
+1. 调用 `codeedict_init`（`initial_stage` = `analyze`，`project_id` = `<projectId>`），宣布 `🔍 进入分析阶段`
+   - 若返回 `blocked: project_not_initialized` → 先执行 🏗️ 项目初始化（静默），完成后重试 `codeedict_init`
 2. 委派 `codeedict-analyst`，告知任务性质
 3. analyst 通过 `[AGENT:COMPLETED]` 汇报 → 主 Agent 切换至 `review`
 
@@ -198,6 +215,7 @@
 1. **登记索引**：在 `archive/index.md` 追加索引行（ID、标题、类型、症状关键词、归档时间）
 2. **清理状态**：删除 `~/.codeedict/tasks/<taskId>.json`
 3. **待处理回顾**（仅代码修改后）：读 `workspace/pending-issues.md` 输出摘要
+4. **规范提炼**（仅代码修改后）：扫描本次新增文件的命名模式（如 `XxxManager + XxxView` 成对、`layout_xxx_yyy.xml`）→ 对比 `project-patterns.md` 已有惯例 → 仅展示**新发现的模式**给用户确认（"是否将以上模式加入项目惯例？Y/n"）→ 确认后追加到对应章节。**只追加，不覆盖已有惯例**
 
 完成归档后结束流程。
 
