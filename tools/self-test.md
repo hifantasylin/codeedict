@@ -8,6 +8,21 @@
 node scripts/test.js    # 状态机单元测试（15 项，含项目就绪门禁）
 ```
 
+## 🎯 最小复检矩阵
+
+> 只改了一个 agent/文件？查此表只跑对应场景。
+
+| 改了什么 | 必须跑 | 可选跑 |
+|----------|:---:|:---:|
+| `check.js`（状态机） | `scripts/test.js` | — |
+| `codeedict.md`（主 Agent） | A + B + C | — |
+| `codeedict-analyst.md` | A (+ B 如果有 proposal) | — |
+| `codeedict-coder.md` | B | — |
+| `codeedict-code-reviewer.md` | B | — |
+| `codeedict-proposal-reviewer.md` | A + B | — |
+| proposal 模板 | B | — |
+| `self-test.md` / `test.js` | `scripts/test.js` | — |
+
 ## 🧪 手动集成测试场景
 
 ## 校验清单

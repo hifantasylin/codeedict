@@ -50,8 +50,9 @@
 |------|------|
 | 写前校验 | **必须**调用 `codeedict_write` MCP 工具 |
 | 编辑方式 | 用 `{{EDIT_CMD}}` 精准编辑，避免重写整个文件 |
-| 工具链 | 读 `project.json` → `toolchain` → 获取编译、部署、Lint、测试命令 |
-| 编译 | 编译失败 → 修复 → 重编译，**最多 3 次** |
+| 工具链 | 读项目标志文件（`package.json` scripts / `build.gradle` / `Makefile` / `go.mod` 等）自行判断编译命令 |
+| 编译 | **最低门禁，不可跳过**。自行判断编译命令并执行。编译失败 → 修复 → 重编译，**最多 3 次** |
+| 验证 | 编译通过后**必须验证项目能正常运行**：app 能启动 / server 能响应 / 页面能打开。失败同样修复重试 |
 | 上限 | 3 次后仍失败 → 输出 `[AGENT:REJECTED:TIMEOUT:compile-failure]` 并停止 |
 
 ### 3. 自测
@@ -78,15 +79,23 @@
 ```
 [AGENT:COMPLETED][TEST:passed]
 ```
+```
+[AGENT:COMPLETED][TEST:passed][BUILD:passed]
+```
 或
 ```
-[AGENT:COMPLETED][TEST:skipped]
+[AGENT:COMPLETED][TEST:skipped][BUILD:passed]
 ```
 
 失败时：
 ```
 [AGENT:REJECTED:TIMEOUT:compile-failure]
 ```
+```
+[AGENT:REJECTED:TIMEOUT:runtime-failure]
+```
+
+>`[BUILD:passed]` 表示编译 + 运行验证均通过。coder 一旦提交此标记，即表示代码经实测可正常运行。
 
 绝不调用 `codeedict_stage`。主 Agent 收到标记后负责切换阶段和后续委派。
 

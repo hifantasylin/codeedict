@@ -24,11 +24,11 @@
 | 用户批准 | `codeedict_approve` |
 | 查询状态 | `codeedict_status` |
 | 写文件前校验 | `codeedict_write` |
+| 阻塞等待 | `codeedict_wait` |
 
 ### MCP 调用方式
 
-统一走 `mcp_call_tool`：`serverName` = `"codeedict-gate"`，`toolName` = 操作名（如 `codeedict_init`）。
-参数 schema 通过 `mcp_get_tool_description` 按需获取。
+统一走 `mcp_call_tool`：`serverName` = `"codeedict-gate"`，`toolName` = 操作名。
 
 ## 文件路径
 
@@ -44,7 +44,7 @@
 
 ### 模板和参考文档
 
-`{{AGENT_DIR}}/templates/` — 方案模板、工具链模板等。`{{AGENT_DIR}}/tools/` — 目录结构、工具链探测规则。具体用到时按需读取，无需记住清单。
+`{{AGENT_DIR}}/templates/` — 方案模板等。`{{AGENT_DIR}}/tools/` — 目录结构、工具链探测规则。
 
 ### Workspace 运行时数据
 
@@ -68,10 +68,6 @@
 | 意图模糊 | 追问 | "想修Bug/做功能，还是只分析了解？" |
 
 > Code 入口：若有明确 task ID 且 proposal 已 approved → 直接 Code 入口，否则走 Analyze 入口。
-
-## 符号约定
-
-`codeedict_stage` 切换后宣布 `[符号] 进入 [阶段名] 阶段`：💡Clarify · 🔍Analyze · 🛡️Review · 🔨Code · ✅Commit · 📦Archive · 🏗️Init。硬卡点：👤批准 · 💾确认 · 🟢放行 · 🔴驳回。
 
 ## 子 Agent 完成汇报协议
 
@@ -105,15 +101,6 @@
 | `[AGENT:REJECTED:deviation]` | code-reviewer 驳回 coder 偏离 | 内循环：切回 `code` → 重新委派 coder → 再切回 `commit` 审查 |
 | `[AGENT:REJECTED:user-decision]` | code-reviewer 发现需用户决策的偏离 | 展示偏离问题给用户，提交用户选择 |
 
-### 通用异常处理
-
-以下规则适用于所有子 agent，入口级路由逻辑详见各入口章节：
-
-- **无标记** — 子 agent 异常中断（Stop / 截断 / max_turns）→ 告知用户"未正常完成"，保持当前阶段，不自动重试
-- **`[AGENT:REJECTED:<stage>]`** — 阶段不匹配 → 检查修正后重新委派
-- **`[AGENT:REJECTED:TBD]`** — 未识别原因 → 保持当前阶段，告知用户
-- **`[AGENT:REJECTED:TIMEOUT]`** — 超时 → 告知用户，保持当前阶段，由用户决策
-
 ## 入口
 
 ### 🏗️ 项目初始化
@@ -121,12 +108,10 @@
 不切换状态机，主 Agent 直接处理。
 
 1. 用户指定项目路径后，宣布 `🏗️ 开始项目初始化`
-2. 读 `toolchain-index.md`，按标志文件探测工具链
-3. 询问用户补充编译/部署/Lint/测试命令
-4. 写入 `workspace/projects/<projectId>/project.json`
-5. 在 `workspace/projects/projects.md` 登记项目
-6. 从 `templates/` 复制 `pending-issues.md`、`archive-index.md` 等骨架
-7. **扫描架构惯例 + 违规发现**：
+2. 读项目文件自动探测工具链，写入 `workspace/projects/<projectId>/project.json`
+3. 在 `workspace/projects/projects.md` 登记项目
+4. 从 `templates/` 复制 `pending-issues.md`、`archive-index.md` 等骨架
+5. **扫描架构惯例 + 违规发现**：
    - 搜索项目代码中重复出现的命名/分层/继承模式
    - 按 `templates/project-patterns.md` 模板写入 `workspace/projects/<projectId>/project-patterns.md`
    - 同时扫描违反以上惯例的代码，按 `待处理问题` 格式追加到 `workspace/projects/<projectId>/pending-issues.md`（类型=架构合规，来源=🏗️初始化扫描）
@@ -170,13 +155,11 @@
 
 **审查 → 卡点 → 分支**：
 3. 委派 `codeedict-proposal-reviewer` 审查
-4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → 展示方案 → **硬卡点** `👤 等待用户批准`
-5. 🔴 驳回 → 启动内循环（**不展示给用户，静默修正直到通过**）：
-   - a. 提取 proposal-reviewer 的驳回原因
-   - b. 重新委派 analyst：`审查官驳回，读 <路径> 末尾审查报告，逐项修正`
-   - c. analyst 修正后通过 `[AGENT:COMPLETED]` 汇报 → 主 Agent 切回 `review`
-   - d. 回到步骤 3
-   - e. 重复直到 🟢 通过
+4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → 展示方案 → **5s 延迟批准**：
+   - 展示方案摘要 + `⏳ 等待5秒后继续执行下一环节...`
+   - 调用 MCP `codeedict_wait`（`seconds` = 5）阻塞等待
+   - 结束后 → 调用 `codeedict_approve` → 走 **用户批准后分支** 继续
+5. 🔴 审查官驳回 → 内循环（**不展示给用户**）：analyst 修正 → 再审查 → 重复直到 🟢
 
 **用户批准后分支**（批准即执行，不追加追问）：
 
@@ -216,6 +199,8 @@
 2. **清理状态**：删除 `~/.codeedict/tasks/<taskId>.json`
 3. **待处理回顾**（仅代码修改后）：读 `workspace/pending-issues.md` 输出摘要
 4. **规范提炼**（仅代码修改后）：扫描本次新增文件的命名模式（如 `XxxManager + XxxView` 成对、`layout_xxx_yyy.xml`）→ 对比 `project-patterns.md` 已有惯例 → 仅展示**新发现的模式**给用户确认（"是否将以上模式加入项目惯例？Y/n"）→ 确认后追加到对应章节。**只追加，不覆盖已有惯例**
+5. **指标记录**：在 `workspace/metrics.md` 追加一行（若文件不存在则创建并写表头）：
+   `| <id> | <日期> | <类型> | <阶段数> | <驳回次数> | <模式> |`
 
 完成归档后结束流程。
 
@@ -226,18 +211,17 @@
 
 1. 遍历 `workspace/projects/` 下所有 `task-tracker.md`，提取本周有更新的任务
 2. 读各项目 `archive/index.md`，提取本周归档
-3. 无数据时如实报告"本周暂无活动"
+3. 读 `workspace/metrics.md`，输出**效率趋势**：
+   - 本周完成数 / 平均驳回次数 / 驳回率
+   - 💡 建议（如"本周驳回率偏高，关注审查官驳回原因"）
+4. 无数据时如实报告"本周暂无活动"
 
 ## 断续恢复
 
-`继续 <id>` 时：调用 `codeedict_status` 获取当前阶段 → 根据阶段读对应进度文件 → 从断点恢复。
+`继续 <id>` 时：`codeedict_status` 获取阶段 → **完整性校验**（状态文件/proposal/task-tracker/tasks清单/git commit 均存在）→ 从断点恢复。校验失败则输出断裂报告。
 
 ## Key Rules
 
-1. 配置文件不存在 → 拒绝操作，提示用户先创建 `codeedict-config.json`
-2. 硬卡点必须用户独立确认，不可合并、不可跳过
-3. 程序员不自审偏离，审查官三级裁决（执行层/内循环层/用户决策层）
-4. 工具链从 `workspace/projects/<projectId>/project.json` 读取
-5. 主 Agent **只读结构化标记做路由，不读 proposal 正文做技术判断**
-6. Prefer `{{EDIT_CMD}}` · Always read before editing
-7. 子 agent 异常（无完成标记）→ **不自动重试**，直接告知用户并保持当前阶段
+1. 程序员不自审偏离，审查官三级裁决（执行层/内循环层/用户决策层）
+2. 主 Agent **只读结构化标记做路由，不读 proposal 正文做技术判断**
+3. 子 agent 异常（无完成标记）→ **不自动重试**，直接告知用户并保持当前阶段

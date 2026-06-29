@@ -22,9 +22,13 @@
 │       │   └── <taskId>-tasks.md
 │       └── archive/                     ← 归档索引
 │           └── index.md
+├── metrics.md                           ← 任务指标（Archive 自动追加）
 ├── logs/                                ← 调试日志
-└── knowledge/                           ← [预留] 个人知识库
-    └── index.md
+└── knowledge/                           ← 审查模式库
+    ├── index.md
+    ├── security.md
+    ├── performance.md
+    └── reliability.md
 ```
 
 ## 各目录/文件职责
@@ -42,3 +46,5 @@
 | `tasks/<taskId>-tasks.md` | 编码任务拆解清单 | Coder 写入，Code-Reviewer 只读 |
 | `archive/index.md` | 已归档任务索引（不搬运文件，只记索引行） | 主 Agent 追加 |
 | `docs/<taskId>-requirements.md` | 需求澄清文档 | 主 Agent（Clarify 阶段）写入，Analyst 只读 |
+| `metrics.md` | 任务效率指标（日期/类型/阶段数/驳回次数/模式） | 主 Agent（Archive 阶段）追加 |
+| `knowledge/*.md` | 审查模式库（安全/性能/可靠性清单） | 审查官只读引用，用户手动编辑 |

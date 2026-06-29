@@ -29,6 +29,7 @@
 | 主 Agent | `task_id` | — |
 | 文件（Code 模式） | 六段式方案 | `workspace/projects/<projectId>/proposals/<taskId>.md` |
 | 文件（Analyze 模式） | 分析报告 | `workspace/projects/<projectId>/docs/<taskId>-analysis.md` |
+| 文件 | 审查模式库 | `workspace/knowledge/security.md` `performance.md` `reliability.md`：安全/性能/可靠性审查时引用模式 ID，已覆盖的标注 `✅ SEC-01` 跳过，新发现的标注 `🆕` |
 
 ## 执行流程
 
@@ -73,7 +74,7 @@
 | 角度 | 反驳方向 |
 |------|----------|
 | 目标 | 方案是否真正覆盖了根因？有没有更直接的方式达成目标？ |
-| 成本 | 是否有更简单的实现路径？当前方案复杂度是否合理？ |
+| 成本 | 是否有更简单的实现路径？当前方案复杂度是否合理？新增抽象点是否有实际调用者（无消费者不建抽象）？ |
 | 风险 | 可能引入哪些副作用？哪些现有功能会受影响？ |
 | 长期收益 | 方案是否可维护？是否引入技术债？是否利于后续扩展？ |
 | 异常路径 | 网络断了？权限拒了？数据为空？方案覆盖了异常情况吗？ |

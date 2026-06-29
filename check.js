@@ -10,6 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { execSync } = require('child_process');
 
 // ══════════════════════════════════════════════════════════
 //  Workspace 探测
@@ -231,6 +232,18 @@ function cmdWrite(taskId, filePath) {
     return _ok({ task_id: taskId, file: filePath, stage: current, message: '允许写入' });
 }
 
+function cmdWait(seconds) {
+    const sec = Math.max(1, Math.min(30, parseInt(seconds) || 5));
+    try {
+        if (os.platform() === 'win32') {
+            execSync(`powershell -Command "Start-Sleep -Seconds ${sec}"`, { stdio: 'ignore', timeout: sec * 1000 + 2000 });
+        } else {
+            execSync(`sleep ${sec}`, { stdio: 'ignore', timeout: sec * 1000 + 2000 });
+        }
+    } catch (e) { /* 超时不阻塞主线 */ }
+    return _ok({ waited: sec, message: `等待 ${sec}s 完成` });
+}
+
 // ══════════════════════════════════════════════════════════
 //  MCP Server（JSON-RPC over stdio）
 // ══════════════════════════════════════════════════════════
@@ -281,6 +294,11 @@ const MCP_TOOLS = [
         description: '初始化新任务，创建状态文件。可指定初始阶段（默认 clarify，分析类任务应传 analyze）。传 project_id 会先检查项目 workspace 是否就绪，未就绪则返回 blocked=project_not_initialized 拒绝创建。',
         inputSchema: { type: 'object', properties: { task_id: { type: 'string', description: '任务 ID，格式 projectId-B/F/R/A编号-简短描述' }, proposal_path: { type: 'string', description: '可选，proposal 文件路径' }, initial_stage: { type: 'string', description: '可选，初始阶段。分析类任务传 analyze，修改类任务默认 clarify' }, project_id: { type: 'string', description: '可选。传入后强制检查项目 workspace 是否已初始化（project.json 是否存在），未就绪则拒绝创建任务' } }, required: ['task_id'] },
     },
+    {
+        name: 'codeedict_wait',
+        description: '阻塞等待指定秒数（1-30s，默认5s）。用于"延迟批准"模式：展示方案后调用此工具等待，期间用户可输入驳回，超时则自动继续。',
+        inputSchema: { type: 'object', properties: { seconds: { type: 'number', description: '等待秒数，1-30，默认5' } } },
+    },
 ];
 
 function runMcp() {
@@ -328,6 +346,7 @@ function handleMcpMessage(msg) {
             else if (toolName === 'codeedict_rejected') result = cmdRejected(taskId, toolArgs.reason);
             else if (toolName === 'codeedict_approve') result = cmdApprove(taskId, toolArgs.checkpoint);
             else if (toolName === 'codeedict_init') result = cmdInit(taskId, toolArgs.proposal_path || '', toolArgs.initial_stage || '', toolArgs.project_id || '');
+            else if (toolName === 'codeedict_wait') result = cmdWait(toolArgs.seconds || 5);
             else result = { error: `unknown tool: ${toolName}` };
         } catch (e) {
             result = { error: e.message };
@@ -348,7 +367,7 @@ function sendMcp(data) {
 //  导出（供测试使用）
 // ══════════════════════════════════════════════════════════
 
-module.exports = { cmdInit, cmdStage, cmdWrite, cmdStatus, cmdCheckEntry, cmdTransitions, cmdApprove, cmdReviewed, cmdRejected, Stage, WORKSPACE, PROJECTS_DIR, TASK_STATES_DIR };
+module.exports = { cmdInit, cmdStage, cmdWrite, cmdStatus, cmdCheckEntry, cmdTransitions, cmdApprove, cmdReviewed, cmdRejected, cmdWait, Stage, WORKSPACE, PROJECTS_DIR, TASK_STATES_DIR };
 
 // ══════════════════════════════════════════════════════════
 //  CLI 入口
