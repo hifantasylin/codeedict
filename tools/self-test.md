@@ -18,6 +18,7 @@ node scripts/test.js    # 状态机单元测试（15 项，含项目就绪门禁
 | `codeedict.md`（主 Agent） | A + B + C | — |
 | `codeedict-analyst.md` | A (+ B 如果有 proposal) | — |
 | `codeedict-coder.md` | B | — |
+| `codeedict-tester.md` | B | — |
 | `codeedict-code-reviewer.md` | B | — |
 | `codeedict-proposal-reviewer.md` | A + B | — |
 | proposal 模板 | B | — |
@@ -34,10 +35,11 @@ node scripts/test.js    # 状态机单元测试（15 项，含项目就绪门禁
 | 所有 `codeedict_stage` 由主 Agent 调用，子 Agent 从未调用 | |
 | 每个子 Agent 开工第一件事是 `codeedict_status` 校验阶段 | |
 | 阶段不匹配时子 Agent 输出 `[AGENT:REJECTED:expected=...]` | |
-| COMPLETED 标记格式正确（含键值扩展如 `[MODE:*]` / `[TEST:*]`） | |
+| COMPLETED 标记格式正确（`[MODE:*]` 来自 proposal-reviewer，`[TEST:*]` 来自 tester） | |
 | REJECTED 细分标记正确（review / deviation / TIMEOUT / stage） | |
 | 驳回内循环**不展示给用户**（静默直到通过） | |
-| 偏离内循环：切回 code → 重新委派 coder → 切回 commit → 重新审查 | |
+| 偏离内循环：切回 code → 委派 coder → 委派 tester → 切回 commit → 重新审查 | |
+| 偏离修正不走 lightweight，强制 coder+tester 流水线 | |
 | 内循环 3 次驳回 → reviewer 自动裁决（接受或回滚） | |
 | 纯分析（MODE:report）不进 Code，直接 Archive | |
 | 代码变更（MODE:lightweight/normal）审批后进 Code | |
@@ -104,8 +106,8 @@ node scripts/test.js    # 状态机单元测试（15 项，含项目就绪门禁
 
 | 检查项 | ✅ |
 |--------|:--:|
-| bugfix 类任务 Archive → 步骤 4.3 触发反模式提取（从 proposal 根因+方案段提取） | |
-| feature 类任务 Archive → 步骤 4.3 跳过（不提取） | |
+| bugfix 类任务 Archive → 步骤 4b 触发反模式提取（从 proposal 根因+方案段提取） | |
+| feature 类任务 Archive → 步骤 4b 跳过（不提取） | |
 | 提取的反模式追加到 `project-context.md` 反模式表（症状关键词 / 错误模式 / 正确做法 / 来源任务 ID，共 4 列） | |
 | 同一 bug 模式不会重复追加（去重判断） | |
 
@@ -113,7 +115,7 @@ node scripts/test.js    # 状态机单元测试（15 项，含项目就绪门禁
 
 | 检查项 | ✅ |
 |--------|:--:|
-| 代码变更后 Archive 步骤 4.5 → 收集本次变更文件列表 → 重扫 import | |
+| 代码变更后 Archive 步骤 4c → 收集本次变更文件列表 → 重扫 import | |
 | 与 `project-context.md` 依赖关系图 diff → 追加新边、移除废弃边 | |
 | 不重扫全项目（增量，仅变更文件） | |
 | `刷新规范 <projectId>` 触发全量重建（覆盖增量累积误差） | |
@@ -140,8 +142,8 @@ node scripts/test.js
   关键：MODE:report 不进 Code
 
 场景 B：代码变更（如"解决xxxbug"）  
-  路径：analyze → review → code → commit → Archive
-  关键：MODE:normal/lightweight → Code → 内循环 → Archive 规范提炼
+  路径：analyze → review → code(coder→tester) → commit → Archive
+  关键：coder 编译通过 → tester 增量/全量测试 → reviewer 审查（含测试覆盖率）→ 内循环含 tester
 
 场景 C：新项目懒初始化（如在新项目说"登录闪退"）
   路径：codeedict_init(project_id=xx) → blocked → Init → codeedict_init 重试

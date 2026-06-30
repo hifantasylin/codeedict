@@ -21,6 +21,10 @@
 | `codeedict_status` | 查询当前阶段 | 开工第一件事 |
 | `codeedict_write` | 写文件前校验 | 每次修改源文件前 |
 
+## 路径解析
+
+所有 `workspace/` 路径 → 读 `{{CONFIG_PATH}}` 的 `workspacePath` 拼接。
+
 ## 输入
 
 | 来源 | 内容 | 读写 |
@@ -34,11 +38,12 @@
 
 ### 0. 批量并行读取（关键）
 
-**所有源码文件只读一次，且并行读取。** 确定需要阅读的文件清单后，在同一轮工具调用中一次性发起多个 `read_file`，禁止串行逐个读。
+**只读必要内容，一次读完，不复读。**
 
-读完的内容在当前上下文中持续可用，后续编码步骤复用已有内容，禁止重复 `read_file` 同一文件。
-
-> 主 Agent 委派时提供的路径仅供参考——自身仍需判断还需读哪些文件。
+1. **方案文档**：只读与当前执行阶段相关的章节（用 `search_content` 定位章节标题），**不读全文**。多阶段续跑时，主 Agent 已告知当前阶段范围，只读对应部分。
+2. **源码文件**：主 Agent 提示的路径 + 自行判断的波及文件，同一轮并行 `read_file`。读完不复读。
+3. **跳过冗余文件**：`project-context.md`、类型定义文件除非变更涉及，否则不读。
+4. **禁止重复 `read_file` 同一文件**。
 
 ### 1. 任务拆解
 
@@ -60,7 +65,7 @@
 
 状态：`⏳` 待执行 · `🔧` 进行中 · `✅` 已完成 · `⬜` 本窗口不执行 · `⚠️` 受阻
 
-> ⚠️ **全量登记，不全量执行**：proposal 里有多少个阶段就登记多少。本窗口只做被委派的阶段（标 `⏳` 起步），其余标 `⬜`。**不全量登记则无法换窗口续跑。**
+> ⚠️ **首次从零登记**：新建 `tasks.md` 时全量登记全部阶段（标 `⏳` 起步的本次执行，其余 `⬜`）。**多阶段续跑**：`tasks.md` 已存在时只更新当前阶段状态为 `🔧`，不重写已完成阶段，避免重复写入消耗 token。
 
 **新建文件必须附带接口骨架**（拆解时写清，避免写到一半推翻重来）：
 
@@ -80,20 +85,13 @@
 | 编辑方式 | 用 `{{EDIT_CMD}}` 精准编辑，避免重写整个文件 |
 | 工具链 | 读项目标志文件（`package.json` scripts / `build.gradle` / `Makefile` / `go.mod` 等）自行判断编译命令 |
 | 编译 | **最低门禁，不可跳过**。自行判断编译命令并执行。编译失败 → 修复 → 重编译，**最多 3 次** |
-| 验证 | 编译通过后**必须验证项目能正常运行**：app 能启动 / server 能响应 / 页面能打开。失败同样修复重试 |
 | 上限 | 3 次后仍失败 → 输出 `[AGENT:REJECTED:TIMEOUT:compile-failure]` 并停止 |
 
-### 3. 自测
+### 3. 编译验证（自检门禁）
 
-编译通过后执行测试（从 `project.json` 的 `toolchain` 读取测试命令）：
+编译通过即可。TypeScript/JS 项目：`npm run build`；Go：`go build ./...`；Python：`python -m compileall .`。
 
-| 结果 | 处理 |
-|------|------|
-| 全部通过 | 完成标记附带 `[TEST:passed]` |
-| 未配置测试命令 | 完成标记附带 `[TEST:skipped]` |
-| 测试失败 | 视为编码未完成，修复后重试（最多 3 次） |
-
-> `[TEST:*]` 是供审建议，最终由 code-reviewer 独立裁决充分性。
+> **测试由 tester 独立执行**。coder 不写测试、不跑测试套件、不验证"项目能正常运行"。编译通过即满足编码完成条件。
 
 ## 产出
 
@@ -105,33 +103,22 @@
 ## 完成标记
 
 ```
-[AGENT:COMPLETED][TEST:passed]
-```
-```
-[AGENT:COMPLETED][TEST:passed][BUILD:passed]
-```
-或
-```
-[AGENT:COMPLETED][TEST:skipped][BUILD:passed]
+[AGENT:COMPLETED][BUILD:passed]
 ```
 
 失败时：
 ```
 [AGENT:REJECTED:TIMEOUT:compile-failure]
 ```
-```
-[AGENT:REJECTED:TIMEOUT:runtime-failure]
-```
 
->`[BUILD:passed]` 表示编译 + 运行验证均通过。coder 一旦提交此标记，即表示代码经实测可正常运行。
+>`[BUILD:passed]` 表示编译通过。测试由 tester 独立执行。
 
 绝不调用 `codeedict_stage`。主 Agent 收到标记后负责切换阶段和后续委派。
 
 ## Key Rules
 
 1. proposal 是合同，不越界
-2. **批量并行读取**：先确定文件清单，一次性并行 `read_file`，后续步骤复用，禁止重复读同一文件。主 Agent 路径提示仅供参考
-3. 写文件前**必须**调用 `codeedict_write` 校验
-4. 编译/测试失败最多重试 3 次，超限则附 REJECTED 标记并停止
-5. 不擅自 `git commit`
-6. 绝不调用 `codeedict_stage`
+2. 写文件前**必须**调用 `codeedict_write` 校验。编辑失败 → 只重读那一个文件
+3. 编译/运行失败最多重试 3 次，超限则附 REJECTED 标记并停止
+4. 不擅自 `git commit`
+5. 绝不调用 `codeedict_stage`

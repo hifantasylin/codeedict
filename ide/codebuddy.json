@@ -10,7 +10,7 @@
       "name": "codeedict",
       "description": "AI码律 主调度 Agent。路由用户意图到 Code/Analyze/Clarify 三模式，协调子 Agent 执行，状态机硬约束保障流程。",
       "model": "deepseek-v4-pro",
-      "tools": ["list_dir", "search_file", "search_content", "read_file", "write_to_file", "replace_in_file", "execute_command", "mcp_codeedict-gate"],
+      "tools": ["list_dir", "search_file", "search_content", "read_file", "write_to_file", "replace_in_file", "delete_file", "execute_command", "mcp_codeedict-gate"],
       "agentMode": "manual",
       "enabled": true,
       "enabledAutoRun": true
@@ -38,6 +38,15 @@
       "description": "🛡️ AI码律 方案审查官。对立审查方案文档（七角度反驳：目标/成本/风险/长期收益/异常路径/安全/回滚）。触发：主 Agent 在 Review 阶段 delegate 到此子 Agent。",
       "model": "deepseek-v4-pro",
       "tools": ["list_dir", "search_file", "search_content", "read_file", "replace_in_file", "mcp_codeedict-gate"],
+      "agentMode": "agentic",
+      "enabled": true,
+      "enabledAutoRun": true
+    },
+    "codeedict-tester": {
+      "name": "codeedict-tester",
+      "description": "🧪 AI码律 测试员。融入项目已有测试体系，增量补充测试用例，维护已有测试，输出覆盖率报告。触发：主 Agent 在 Code 阶段 coder 完成后 delegate 到此子 Agent。",
+      "model": "deepseek-v4-pro",
+      "tools": ["list_dir", "search_file", "search_content", "read_file", "replace_in_file", "write_to_file", "execute_command", "mcp_codeedict-gate"],
       "agentMode": "agentic",
       "enabled": true,
       "enabledAutoRun": true

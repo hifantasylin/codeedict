@@ -53,6 +53,18 @@
 | ViewModel | 状态管理 + 业务逻辑 | 不持有 Context/View 引用 |
 | Repository | 数据源封装 | 不持有 UI 状态 |
 
+## 测试体系
+
+> 项目初始化时自动探测，tester 直接读取无需重复扫描。Archived 阶段增量更新。
+
+| 项 | 值 |
+|----|-----|
+| 测试框架 | <jest / vitest / pytest / go test / 等> |
+| 测试命令 | <npm test / pytest / go test ./... / 等> |
+| 测试目录 | <__tests__/、tests/、spec/ 等> |
+| 文件模式 | <*.test.ts、*_test.py、*Test.java 等> |
+| 示例文件 | <指向一个已有测试文件路径> |
+
 ## 边界标记
 
 > 🔒 核心逻辑（修改影响大，需变更控制） / ✅ 可自由修改 / ⚠️ 需人工 review

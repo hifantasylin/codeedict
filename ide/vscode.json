@@ -10,8 +10,8 @@
       "name": "Codeedict",
       "description": "AI码律 主调度 Agent。路由用户意图到 Code/Analyze/Clarify 三模式，协调子 Agent 执行，状态机硬约束保障流程。",
       "model": "deepseek-v4-pro",
-      "tools": ["agent", "read", "search", "edit", "mcp_codeedict-gate"],
-      "agents": ["codeedict-analyst", "codeedict-coder", "codeedict-proposal-reviewer", "codeedict-code-reviewer"],
+      "tools": ["agent", "read", "search", "edit", "delete", "mcp_codeedict-gate"],
+      "agents": ["codeedict-analyst", "codeedict-coder", "codeedict-tester", "codeedict-proposal-reviewer", "codeedict-code-reviewer"],
       "user-invocable": true
     },
     "codeedict-analyst": {
@@ -33,6 +33,14 @@
     "codeedict-proposal-reviewer": {
       "name": "codeedict-proposal-reviewer",
       "description": "🛡️ AI码律 方案审查官。对立审查方案文档（七角度反驳：目标/成本/风险/长期收益/异常路径/安全/回滚）。",
+      "model": "deepseek-v4-pro",
+      "tools": ["edit", "read", "search", "mcp_codeedict-gate"],
+      "user-invocable": false,
+      "disable-model-invocation": false
+    },
+    "codeedict-tester": {
+      "name": "codeedict-tester",
+      "description": "🧪 AI码律 测试员。融入项目已有测试体系，增量补充测试用例，维护已有测试，输出覆盖率报告。",
       "model": "deepseek-v4-pro",
       "tools": ["edit", "read", "search", "mcp_codeedict-gate"],
       "user-invocable": false,
