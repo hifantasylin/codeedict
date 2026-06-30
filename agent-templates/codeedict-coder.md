@@ -52,6 +52,16 @@
 
 状态：`⏳` 待执行 · `🔧` 进行中 · `✅` 已完成 · `⚠️` 受阻
 
+**新建文件必须附带接口骨架**（拆解时写清，避免写到一半推翻重来）：
+
+```
+新建文件: src/hooks/useTask.ts
+  导出: useTask<T>(fn) → { execute, isLoading, data, error, reset }
+  依赖: types/task.ts (TaskState<T>)
+```
+
+> 不要求完整实现，但签名和依赖必须在拆解阶段确定。
+
 ### 2. 编码
 
 | 步骤 | 要求 |
