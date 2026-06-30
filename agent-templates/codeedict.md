@@ -99,7 +99,6 @@
 | `[AGENT:REJECTED:TIMEOUT]` | 编译/部署/测试超时 | 告知用户，保持当前阶段 |
 | `[AGENT:REJECTED:review]` | proposal-reviewer 驳回方案 | 内循环：重新委派 analyst 修正 → 再审查 |
 | `[AGENT:REJECTED:deviation]` | code-reviewer 驳回 coder 偏离 | 内循环：切回 `code` → 重新委派 coder → 再切回 `commit` 审查 |
-| `[AGENT:REJECTED:user-decision]` | code-reviewer 发现需用户决策的偏离 | 展示偏离问题给用户，提交用户选择 |
 
 ## 入口
 
@@ -111,20 +110,46 @@
 2. 读项目文件自动探测工具链，写入 `workspace/projects/<projectId>/project.json`
 3. 在 `workspace/projects/projects.md` 登记项目
 4. 从 `templates/` 复制 `pending-issues.md`、`archive-index.md` 等骨架
-5. **扫描架构惯例 + 违规发现**：
+5. **扫描架构惯例**：
+   - 用 `search_content` 扫描全项目 `^\s*import.*from|require\(|#include`，汇总为双向边表
    - 搜索项目代码中重复出现的命名/分层/继承模式
-   - 按 `templates/project-patterns.md` 模板写入 `workspace/projects/<projectId>/project-patterns.md`
-   - 同时扫描违反以上惯例的代码，按 `待处理问题` 格式追加到 `workspace/projects/<projectId>/pending-issues.md`（类型=架构合规，来源=🏗️初始化扫描）
-   - 向用户展示惯例 + 违规列表，确认后保存
+   - 按 `templates/project-context.md` 模板写入 `workspace/projects/<projectId>/project-context.md`
+   - 自动写入，仅告知用户生成摘要（章节数 + 依赖边数 + 反模式数）
+6. **新项目判定**：扫描后若各章节全空（或仅 1-2 条）→ 判定为新项目 → 进入 AI 诊断式对话（见下方"新项目引导"）
 
 ### 🔄 规范刷新
 
 不切换状态机。用户指令 `刷新规范 <projectId>`：
 
-1. 重新扫描项目源码，更新 `workspace/projects/<projectId>/project-patterns.md`
-2. 对比上次版本，高亮新增/变更/删除的惯例
-3. 同时扫描违规项：已修复的 → 标记为"已修复"，新增的 → 追加到 `pending-issues.md`
-4. 展示差异 + 违规变化，用户确认后保存
+1. 重新扫描项目源码，更新 `workspace/projects/<projectId>/project-context.md`
+2. 对比上次版本，自动保存变更
+3. 告知用户变更摘要（新增/变更/删除的惯例数量）
+
+### 🆕 新项目引导（AI 诊断式）
+
+Init 判定为新项目后执行。**不让用户填技术选型表**，而是通过多轮对话理解需求，由 AI 输出专业建议。
+
+**第一轮：理解需求本质**（4 个问题一口气问）：
+
+| 问题 | 目的 |
+|------|------|
+| 这个项目是做什么的？一句话说清楚 | 判断项目类型（Web/小程序/CLI/后端/跨端） |
+| 谁用？多少人？ | 判断规模和性能基线 |
+| 一个人开发还是团队？ | 判断协作规范强度 |
+| 有没有已经选好的技术/框架？ | 尊重已有决策 |
+
+**第二轮：AI 输出并自动写入**：
+AI 基于第一轮信息生成 7 维度建议，直接写入 `project-context.md`。**不等待用户确认**，仅告知"已生成以下建议，可随时手动调整"：
+
+| 章节 | 建议内容 |
+|------|----------|
+| 技术栈 | 语言、框架、构建工具、包管理器、运行时/部署（每项附理由） |
+| 项目结构 | 顶层目录、文件组织方式、入口文件 |
+| 架构分层 | 分层模型、层间规则、依赖方向 |
+| 命名规则 | 文件命名、变量/函数命名、组件/类命名、目录命名 |
+| 可复用组件 | 框架内置和项目级公共模块推荐 |
+| 设计约束 | 配置管理、API 规范、状态管理、测试策略、安全基线 |
+| 边界标记 | 🔒 核心逻辑 / ✅ 可自由修改 / ⚠️ 需 review |
 
 ### 💡 Clarify 入口
 
@@ -155,10 +180,12 @@
 
 **审查 → 卡点 → 分支**：
 3. 委派 `codeedict-proposal-reviewer` 审查
-4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → 展示方案 → **5s 延迟批准**：
-   - 展示方案摘要 + `⏳ 等待5秒后继续执行下一环节...`
-   - 调用 MCP `codeedict_wait`（`seconds` = 5）阻塞等待
-   - 结束后 → 调用 `codeedict_approve` → 走 **用户批准后分支** 继续
+4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → 展示方案 → 按模式分流：
+   - **`MODE:report`**：直接 `codeedict_approve` → 📦 Archive
+   - **`MODE:lightweight|normal`**：**5s 延迟批准**：
+     - 展示方案摘要 + `⏳ 等待5秒后继续执行下一环节...`
+     - 调用 MCP `codeedict_wait`（`seconds` = 5）阻塞等待
+     - 结束后 → `codeedict_approve` → 走 **用户批准后分支** 继续
 5. 🔴 审查官驳回 → 内循环（**不展示给用户**）：analyst 修正 → 再审查 → 重复直到 🟢
 
 **用户批准后分支**（批准即执行，不追加追问）：
@@ -183,8 +210,7 @@
 4. coder 返回 `[AGENT:COMPLETED][TEST:*]` → 调用 `codeedict_stage` 切到 `commit`，宣布 `✅ 进入提交确认阶段`
 5. 委派 `codeedict-code-reviewer`：
    - 返回 `[AGENT:COMPLETED]` → 展示审查结论 → 用户确认 → 主 Agent 执行 `git commit`
-   - 返回 `[AGENT:REJECTED:deviation]` → **内循环**：切回 `code` → 重新委派 coder（传入审查结论）→ coder 修正 → 切回 `commit` → 重新委派 reviewer → 重复直到通过，同一偏离点 2 次后仍驳回则上升用户
-   - 返回 `[AGENT:REJECTED:user-decision]` → 展示偏离问题 → 用户选择：接受偏离 / 退回重做 / 拆分处理
+   - 返回 `[AGENT:REJECTED:deviation]` → **内循环**：切回 `code` → 重新委派 coder（传入审查结论）→ coder 修正 → 切回 `commit` → 重新委派 reviewer → 重复直到通过，同一偏离点 3 次后仍驳回 → reviewer 自动裁决：接受偏离（标注原因）或回滚本次改动
    - 返回 `[AGENT:REJECTED:TIMEOUT]` → 告知用户，保持当前阶段
 
 ### 🛡️ review 入口
@@ -198,7 +224,9 @@
 1. **登记索引**：在 `archive/index.md` 追加索引行（ID、标题、类型、症状关键词、归档时间）
 2. **清理状态**：删除 `~/.codeedict/tasks/<taskId>.json`
 3. **待处理回顾**（仅代码修改后）：读 `workspace/pending-issues.md` 输出摘要
-4. **规范提炼**（仅代码修改后）：扫描本次新增文件的命名模式（如 `XxxManager + XxxView` 成对、`layout_xxx_yyy.xml`）→ 对比 `project-patterns.md` 已有惯例 → 仅展示**新发现的模式**给用户确认（"是否将以上模式加入项目惯例？Y/n"）→ 确认后追加到对应章节。**只追加，不覆盖已有惯例**
+4. **规范提炼**（仅代码修改后）：扫描本次新增文件的命名模式 → 对比 `project-context.md` 已有惯例 → 新发现的模式**自动追加**到对应章节，告知用户"已追加 N 条新惯例"。**只追加，不覆盖已有惯例**
+  4.3 **反模式提取**（仅 bugfix）：从 proposal 的"根因"和"方案"段提取错误模式 → 追加到 `project-context.md` 反模式表（症状关键词 / 错误模式 / 正确做法 / 来源任务 ID）。feature 任务跳过此步。
+  4.5 **依赖图增量更新**（仅代码修改后）：收集本次变更的文件列表 → 重扫这些文件的 import → 与 `project-context.md` 依赖关系图 diff → 追加新边、移除废弃边。不重扫全项目。
 5. **指标记录**：在 `workspace/metrics.md` 追加一行（若文件不存在则创建并写表头）：
    `| <id> | <日期> | <类型> | <阶段数> | <驳回次数> | <模式> |`
 

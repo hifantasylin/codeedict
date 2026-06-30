@@ -17,7 +17,7 @@
 
 ## 复用评估
 > 强制回答：项目中有无现成组件/工具类可复用？为什么用/不用？
-> 参考：`workspace/projects/<projectId>/project-patterns.md`
+> 参考：`workspace/projects/<projectId>/project-context.md`
 
 | 现有组件 | 能否复用 | 判断 |
 |-----------|:---:|------|

@@ -28,14 +28,14 @@
 | 来源 | 内容 | 路径 |
 |------|------|------|
 | 主 Agent | `task_id`、任务性质（修改意图 / 纯分析） | — |
-| 文件 | 项目架构惯例（强制首读） | `workspace/projects/<projectId>/project-patterns.md` |
+| 文件 | 项目架构惯例（强制首读） | `workspace/projects/<projectId>/project-context.md` |
 | 文件 | 项目工具链配置 | `workspace/projects/<projectId>/project.json` |
 | 文件（Clarify 转入） | 需求说明文档 | `workspace/projects/<projectId>/docs/<taskId>-requirements.md` |
 
 ## 执行流程
 
 1. **读项目架构地图**（强制第一步）
-   读 `workspace/projects/<projectId>/project-patterns.md`，掌握可复用组件、命名规则、分层约束、反模式清单。方案中的复用评估和备选方案必须基于此文档。
+   读 `workspace/projects/<projectId>/project-context.md`，掌握技术栈、项目结构、可复用组件、命名规则、架构分层、边界标记（🔒不可动 / ✅可改 / ⚠️需review）、依赖关系图、反模式清单。方案中的复用评估、备选方案和影响面分析必须基于此文档。
 
 2. **复审（如有）**
    读文档末尾 `审查报告 vN`，逐条过 `## 质疑` + `## 结论`，确修正方案。
@@ -59,10 +59,11 @@
 5. **根因定位**
    读相关源文件，追踪调用链，定位问题代码。
 
-6. **影响面全扫描**（定位根因后、写方案前必做）
-   - 搜索所有调用方、子类实现、同模式代码
-   - 扫描项目是否有类似问题（同一反模式在别处也有）
-   - 确认波及模块和回归风险点
+6. **影响面全扫描**（定位根因后、写方案前必做，三层探查）
+   1. **第一层 — 文件级依赖**：查 `project-context.md` 依赖关系图，找出被改文件的所有依赖方 → 生成波及文件清单
+   2. **第二层 — 接口级**：若变更涉及函数/类/export → 在波及文件中 `search_content` 搜索变更的符号名 → 列出具体调用行号；若涉及调用方式变化（sync→async 等）→ 检查调用方是否需要 await/.then 适配
+   3. **第三层 — 状态契约**：若变更涉及 enum/常量/interface → 全项目 `search_content` 搜索引用位置 → 列出所有引用方及行号
+   4. **手动兜底**：对波及文件做最终确认，扫描是否有类似问题（同一反模式在别处也有）
 
 7. **增量写文件**
    完成步骤 1-6 全部分析后，再写 proposal。按以下节奏防截断：

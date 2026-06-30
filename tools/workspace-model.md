@@ -11,7 +11,7 @@
 ├── projects/
 │   └── <projectId>/
 │       ├── project.json                 ← 工具链 + 项目摘要
-│       ├── project-patterns.md          ← 架构惯例（命名/分层/复用规则/反模式）
+│       ├── project-context.md          ← 项目全部上下文（技术栈/结构/边界/依赖/反模式）
 │       ├── task-tracker.md              ← 本项目活跃任务
 │       ├── pending-issues.md            ← 本项目待处理问题
 │       ├── proposals/                   ← 方案文档（六段格式）
@@ -38,7 +38,7 @@
 | `projects.md` | 全局项目登记，含项目ID、路径、描述 | 主 Agent 读写 |
 | `pending-issues.md` | 全局待处理问题 | 主 Agent 读写 |
 | `project.json` | 工具链配置（编译、Lint、部署命令） | Coder/ Analyst 只读 |
-| `project-patterns.md` | 项目架构惯例（命名/分层/复用规则/反模式） | 主 Agent 写入（初始化+Archive+刷新），Analyst/Code-Reviewer 只读 |
+| `project-context.md` | 项目全部上下文：技术栈、项目结构、可复用组件、命名规则、架构分层、边界标记、依赖关系图、反模式、设计约束。读写分离——主 Agent 写入（初始化+新项目引导+Archive+刷新），Analyst/Code-reviewer 只读。可执行命令见 `project.json` |
 | `pending-issues.md` | 项目待处理问题（含架构合规、技术债等类型） | 主 Agent 写入（初始化扫描+Archive提炼），Code-Reviewer 可追加 |
 | `task-tracker.md` | 项目活跃任务列表 | Coder 更新 |
 | `proposals/<taskId>.md` | 六段式方案文档（只读不可改） | 主 Agent（Clarify 阶段）/ Analyst 写入，Coder/Reviewer 只读 |
@@ -48,3 +48,13 @@
 | `docs/<taskId>-requirements.md` | 需求澄清文档 | 主 Agent（Clarify 阶段）写入，Analyst 只读 |
 | `metrics.md` | 任务效率指标（日期/类型/阶段数/驳回次数/模式） | 主 Agent（Archive 阶段）追加 |
 | `knowledge/*.md` | 审查模式库（安全/性能/可靠性清单） | 审查官只读引用，用户手动编辑 |
+
+## project.json 与 project-context.md 的职责分割
+
+| | `project.json` | `project-context.md` |
+|------|----------|----------|
+| 格式 | JSON，机器可读 | Markdown，人可读 |
+| 谁用 | Coder — 读取命令并执行 | Analyst / Code-reviewer — 读取惯例做判断 |
+| 核心内容 | 可执行命令（build/test/lint/deploy） | 规则、建议、边界、依赖 |
+| 技术栈 | `type: "node"` 一行 | 完整选型 + 选型理由 |
+| 关系 | — | 末尾引用：`> 可执行命令见 project.json → toolchain` |
