@@ -180,15 +180,18 @@ AI 基于第一轮信息生成 7 维度建议，直接写入 `project-context.md
 
 **审查 → 卡点 → 分支**：
 3. 委派 `codeedict-proposal-reviewer` 审查
-4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → 展示方案 → 按模式分流：
-   - **`MODE:report`**：直接 `codeedict_approve` → 📦 Archive
-   - **`MODE:lightweight|normal`**：**5s 延迟批准**：
-     - 展示方案摘要 + `⏳ 等待5秒后继续执行下一环节...`
-     - 调用 MCP `codeedict_wait`（`seconds` = 5）阻塞等待
-     - 结束后 → `codeedict_approve` → 走 **用户批准后分支** 继续
+4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → **严格按以下顺序，一步不多、一步不少**：
+   - **`MODE:report`**：`codeedict_approve` → 📦 Archive
+   - **`MODE:lightweight|normal`**：
+     1. 展示方案摘要 + `⏳ 等待5秒后继续执行下一环节...`
+     2. 调用 `codeedict_reviewed`
+     3. 调用 MCP `codeedict_wait`（`seconds` = 5）阻塞等待
+     4. 调用 `codeedict_approve`
+     5. 执行 **用户批准后分支**
+   > ⚠️ `codeedict_stage` 在 Code 入口内统一调用（见下方），此处不单独调。
 5. 🔴 审查官驳回 → 内循环（**不展示给用户**）：analyst 修正 → 再审查 → 重复直到 🟢
 
-**用户批准后分支**（批准即执行，不追加追问）：
+**用户批准后分支**（批准即执行，不追加追问。此分支内执行 `codeedict_check_entry` + `codeedict_stage(code)`，不在此分支外重复调用）：
 
 | MODE | 批准后动作 |
 |------|-----------|
@@ -207,11 +210,17 @@ AI 基于第一轮信息生成 7 维度建议，直接写入 `project-context.md
    | `[MODE:lightweight]` | 主 Agent 直接执行编码 |
    | `[MODE:normal]` | 委派 `codeedict-coder` |
 
+   > 委派 coder 时，可附带已知关键文件路径作为参考提示——**仅作提示，子 agent 仍需自行判断还需读哪些文件，不能当做全部**。
+
 4. coder 返回 `[AGENT:COMPLETED][TEST:*]` → 调用 `codeedict_stage` 切到 `commit`，宣布 `✅ 进入提交确认阶段`
 5. 委派 `codeedict-code-reviewer`：
-   - 返回 `[AGENT:COMPLETED]` → 展示审查结论 → 用户确认 → 主 Agent 执行 `git commit`
+   - 返回 `[AGENT:COMPLETED]` → **展示审查结论 + commit message → ⚠️ 必须等待用户确认 → 用户确认后**主 Agent 执行 `git commit`（**禁止 git push，除非用户明确指令**）
    - 返回 `[AGENT:REJECTED:deviation]` → **内循环**：切回 `code` → 重新委派 coder（传入审查结论）→ coder 修正 → 切回 `commit` → 重新委派 reviewer → 重复直到通过，同一偏离点 3 次后仍驳回 → reviewer 自动裁决：接受偏离（标注原因）或回滚本次改动
    - 返回 `[AGENT:REJECTED:TIMEOUT]` → 告知用户，保持当前阶段
+
+6. commit 完成后，判断任务是否含多阶段：
+   - **多阶段任务**（proposal 中明确列出多个编码阶段）：告知用户当前阶段完成，询问"继续下一阶段还是归档封存？"
+   - **单阶段任务**：自动进入 📦 Archive
 
 ### 🛡️ review 入口
 
@@ -219,7 +228,7 @@ AI 基于第一轮信息生成 7 维度建议，直接写入 `project-context.md
 
 ### 📦 Archive
 
-统一归档流程。调用 `codeedict_stage` 切到 `archive`，宣布 `📦 进入归档封存阶段`：
+统一归档流程，**全程自动执行，不等待用户确认**。调用 `codeedict_stage` 切到 `archive`，宣布 `📦 进入归档封存阶段`：
 
 1. **登记索引**：在 `archive/index.md` 追加索引行（ID、标题、类型、症状关键词、归档时间）
 2. **清理状态**：删除 `~/.codeedict/tasks/<taskId>.json`
@@ -253,3 +262,5 @@ AI 基于第一轮信息生成 7 维度建议，直接写入 `project-context.md
 1. 程序员不自审偏离，审查官三级裁决（执行层/内循环层/用户决策层）
 2. 主 Agent **只读结构化标记做路由，不读 proposal 正文做技术判断**
 3. 子 agent 异常（无完成标记）→ **不自动重试**，直接告知用户并保持当前阶段
+4. **禁止自行 `git push`**：仅在用户明确指令时执行。git commit 后不自动 push
+5. Commit 阶段审查通过后**必须等待用户确认**才能执行 git commit，不可跳过

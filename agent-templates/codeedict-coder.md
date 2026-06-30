@@ -32,6 +32,14 @@
 
 ## 执行流程
 
+### 0. 批量并行读取（关键）
+
+**所有源码文件只读一次，且并行读取。** 确定需要阅读的文件清单后，在同一轮工具调用中一次性发起多个 `read_file`，禁止串行逐个读。
+
+读完的内容在当前上下文中持续可用，后续编码步骤复用已有内容，禁止重复 `read_file` 同一文件。
+
+> 主 Agent 委派时提供的路径仅供参考——自身仍需判断还需读哪些文件。
+
 ### 1. 任务拆解
 
 按 proposal 实施步骤拆为可独立执行的编码任务，写入 `workspace/projects/<projectId>/tasks/<taskId>-tasks.md`：
@@ -102,7 +110,8 @@
 ## Key Rules
 
 1. proposal 是合同，不越界
-2. 写文件前**必须**调用 `codeedict_write` 校验
-3. 编译/测试失败最多重试 3 次，超限则附 REJECTED 标记并停止
-4. 不擅自 `git commit`
-5. 绝不调用 `codeedict_stage`
+2. **批量并行读取**：先确定文件清单，一次性并行 `read_file`，后续步骤复用，禁止重复读同一文件。主 Agent 路径提示仅供参考
+3. 写文件前**必须**调用 `codeedict_write` 校验
+4. 编译/测试失败最多重试 3 次，超限则附 REJECTED 标记并停止
+5. 不擅自 `git commit`
+6. 绝不调用 `codeedict_stage`
