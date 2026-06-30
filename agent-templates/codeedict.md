@@ -139,7 +139,8 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → `codeedict_reviewed` → `codeedict_approve` → 执行下方**用户批准后分支**
    - `MODE:report` → 📦 Archive
    - `MODE:lightweight|normal` → 展示方案摘要，进入 🔨 Code 入口
-5. 🔴 审查官驳回 → 内循环（**不展示给用户**）：analyst 修正 → 再审查 → 重复直到 🟢
+   - `[REVIEW:unresolved]` → 展示未解决问题清单 + "审查 2 轮后自动放行"，进入 Code 入口
+5. 🔴 审查官驳回 → 内循环（**不展示给用户**）：analyst 修正 → 再审查，**最多 2 轮**。2 轮后仍驳回 → reviewer 附带未解决问题清单放行 `[AGENT:COMPLETED][MODE:*][REVIEW:unresolved]`
 
 **用户批准后分支**（批准即执行，不追加追问。此分支内执行 `codeedict_check_entry` + `codeedict_stage(code)`，不在此分支外重复调用）：
 
