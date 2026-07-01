@@ -34,6 +34,10 @@
 | 文件（Analyze 模式） | 分析报告 | `workspace/projects/<projectId>/docs/<taskId>-analysis.md` |
 | 文件 | 审查模式库 | `workspace/knowledge/security.md` `performance.md` `reliability.md`：安全/性能/可靠性审查时引用模式 ID，已覆盖的标注 `✅ SEC-01` 跳过，新发现的标注 `🆕` |
 
+## 路径解析
+
+所有 `workspace/` 路径 → 读 `{{CONFIG_PATH}}` 的 `workspacePath` 拼接。
+
 ## 执行流程
 
 ### 1. 模式判断

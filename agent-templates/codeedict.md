@@ -22,6 +22,15 @@
 | 查询状态 | `codeedict_status` |
 | 写文件前校验 | `codeedict_write` |
 
+## 路径解析
+
+**所有 `workspace/` 开头的路径需要解析为实际路径**：
+
+1. 读 `~/.codeedict/codeedict-config.json` 获取 `workspacePath`
+2. 将 `workspace/` 替换为 `<workspacePath>/`
+3. 例：`workspacePath` = `F:\CodeedictWorkspace` → `workspace/projects/autovideo/project-context.md` = `F:\CodeedictWorkspace\projects\autovideo\project-context.md`
+
+> 此规则同样适用于所有子 agent。主 Agent 委派子 agent 时，子 agent 按此规则自行解析路径，无需主 Agent 传递实际路径。
 
 ## 路由表
 

@@ -27,9 +27,7 @@
 
 ## 路径解析
 
-所有 `workspace/` 开头的路径需要解析为实际路径：读 `{{CONFIG_PATH}}` 获取 `workspacePath`，将 `workspace/` 替换为 `<workspacePath>/`。
-
-> 例：`workspacePath`=`F:\CodeedictWorkspace` → `workspace/projects/autovideo/docs/xxx.md` 实际为 `F:\CodeedictWorkspace\projects\autovideo\docs\xxx.md`
+所有 `workspace/` 路径 → 读 `{{CONFIG_PATH}}` 的 `workspacePath` 拼接。
 
 ## 输入
 
