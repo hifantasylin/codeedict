@@ -25,6 +25,8 @@
 
 ## 路径解析
 
+主 Agent 传入 `task_id`（格式 `projectId-<类型><编号>-<描述>`）。提取 `projectId` 规则：取第一个 `-B`/`-F`/`-R`/`-A` + 数字 之前的部分。
+
 - **全局路径**：直接 `~/.codeedict/<相对路径>`
 - **项目内路径**：通过 `projectId` 查 `~/.codeedict/projects.json` → 获取 `rootPath` → 拼接项目内路径
 

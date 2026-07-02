@@ -24,10 +24,9 @@
 
 ## 路径解析
 
-Codeedict 使用两级存储，agent 需掌握两种路径定位方式：
+Codeedict 使用两级存储。`projectId` 从 `task_id` 提取（格式 `projectId-<B/F/R/A><编号>-<描述>`，取第一个类型标记前的部分）。
 
-**全局路径**（`~/.codeedict/`）：
-直接硬编码路径，用于跨项目共享：`~/.codeedict/projects.json`、`~/.codeedict/metrics.md`、`~/.codeedict/knowledge/`
+**全局路径**→ 直接 `~/.codeedict/<相对路径>`（硬编码）
 
 **项目内路径**：
 1. 通过 `projectId` 读 `~/.codeedict/projects.json` → 获取 `rootPath`
