@@ -2,14 +2,21 @@
 
 > AI码律 自身的架构惯例。改这个项目时，codelist、analyst、coder、reviewer 都应先读此文件。
 
+## 工具链
+
+| 命令 | 用途 |
+|------|------|
+| `node scripts/build.js codebuddy` | 构建部署到 CodeBuddy |
+| `node scripts/build.js vscode` | 构建部署到 VS Code |
+| `node scripts/test.js` | 状态机单元测试（15 项） |
+| — | 无需 Lint / 部署命令 |
+
 ## 技术栈
 
 | 项 | 选型 | 理由 |
 |----|------|------|
 | 语言 | Node.js（check.js）+ Markdown（模板） | MCP Server 需跨平台，Markdown 模板天然可读 |
 | 框架 | 无框架，纯脚本 | 项目本质是 CLI 工具 + 模板集合 |
-| 构建 | `node scripts/build.js` | 模板编译 + 占位符替换 + 拷贝到部署目录 |
-| 测试 | `node scripts/test.js` | 状态机单元测试 15 项 |
 
 ## 项目结构
 
@@ -108,7 +115,7 @@ codeedict/
 | 🔒 | `agent-templates/codeedict-tester.md` | 测试行为影响质量验证 |
 | ⚠️ | `agent-templates/codeedict-code-reviewer.md` | 审查逻辑影响质量门禁 |
 | ⚠️ | `ide/*.json` | 工具权限变更可能影响安全 |
-| ✅ | `templates/*.md`（非 project-context） | 项目骨架模板，低频变更 |
+| ✅ | `templates/*.md`（非 project-context）+ `templates/projects.json` | 项目骨架模板，低频变更 |
 | ✅ | `tools/*.md` | 参考文档，不影响运行时 |
 | ✅ | `scripts/test.js` | 测试脚本，不影响生产 |
 | ✅ | `README.md` | 说明文档 |
@@ -120,8 +127,9 @@ codeedict/
 | 任何 `agent-templates/*.md` | `node scripts/build.js` | 必须重建部署 |
 | `check.js` | `node scripts/test.js` | 15 项单元测试 |
 | `ide/*.json` | `node scripts/build.js` | 工具/权限变更 |
-| `templates/project-context.md` | `node scripts/build.js` | 会影响用户项目初始化 |
-| `templates/*.md`（其他） | `node scripts/build.js` | 会拷贝到部署目录 |
+| `templates/project-context.md` | `node scripts/build.js` | 用户项目架构模板（含工具链章节） |
+| `templates/projects.json` | `node scripts/build.js` | 全局项目登记簿模板 |
+| `templates/*.md`（其他） | `node scripts/build.js` | 方案/周报/审查模式模板 |
 
 ## 反模式 / 教训
 

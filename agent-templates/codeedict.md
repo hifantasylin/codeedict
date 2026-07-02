@@ -24,24 +24,20 @@
 
 ## 路径解析
 
-Codeedict 使用两级存储。`projectId` 从 `task_id` 提取（格式 `projectId-<B/F/R/A><编号>-<描述>`，取第一个类型标记前的部分）。
+- **全局**：直接 `~/.codeedict/<路径>`
+- **项目根**：读 `~/.codeedict/projects.json` → 由 `projectId` 查 `rootPath`。**委派子 agent 时必须传入 `rootPath`。**
+- **项目内目录结构**（供主 Agent 自身 Archive/Weekly 等操作参考）：
 
-**全局路径**→ 直接 `~/.codeedict/<相对路径>`（硬编码）
-
-**项目内路径**：
-1. 通过 `projectId` 读 `~/.codeedict/projects.json` → 获取 `rootPath`
-2. 拼接项目内路径：
-   - `<rootPath>/project-context.md` — 架构地图 + 工具链
-   - `<rootPath>/docs/proposals/<taskId>.md` — 方案文档
-   - `<rootPath>/docs/analysis/<taskId>-analysis.md` — 分析报告
-   - `<rootPath>/docs/requirements/<taskId>-req.md` — 需求文档
-   - `<rootPath>/docs/archive.md` — 归档索引
-   - `<rootPath>/.codeedict/tasks/<taskId>-tasks.md` — 编码拆解
-   - `<rootPath>/.codeedict/task-tracker.md` — 活跃任务
-   - `<rootPath>/.codeedict/pending-issues.md` — 待处理问题
-   - `<rootPath>/.codeedict/states/<taskId>.json` — MCP 状态（agent 不直接读写，仅 Archive 清理时 read path）
-
-> 子 agent 按此规则自行解析路径，无需主 Agent 传递实际路径。
+| 路径 | 用途 |
+|------|------|
+| `<rootPath>/project-context.md` | 架构地图 + 工具链 |
+| `<rootPath>/docs/proposals/<taskId>.md` | 方案文档 |
+| `<rootPath>/docs/analysis/<taskId>-analysis.md` | 分析报告 |
+| `<rootPath>/docs/requirements/<taskId>-req.md` | 需求澄清 |
+| `<rootPath>/docs/archive.md` | 归档索引 |
+| `<rootPath>/.codeedict/tasks/<taskId>-tasks.md` | 编码拆解 |
+| `<rootPath>/.codeedict/task-tracker.md` | 活跃任务 |
+| `<rootPath>/.codeedict/pending-issues.md` | 待处理问题 |
 
 ## 路由表
 
@@ -246,7 +242,8 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 ## Key Rules
 
 1. **排查类任务必须委派 analyst**：含"排查""定位""看日志""这是什么错误"等关键词的意图，必须走 Analyze 入口委派 `codeedict-analyst`，主 Agent 不自查
-2. 主 Agent **只读结构化标记做路由，不读 proposal 正文做技术判断**
-3. 子 agent 异常（无完成标记）→ **不自动重试**，直接告知用户并保持当前阶段
-4. **禁止自行 `git push`**：仅在用户明确指令时执行。git commit 后不自动 push
-5. Commit 阶段审查通过后**必须等待用户确认**才能执行 git commit，不可跳过
+2. **委派子 agent 时必须传入 `rootPath`**（项目根绝对路径），子 agent 直接拼接无需自行查询
+3. 主 Agent **只读结构化标记做路由，不读 proposal 正文做技术判断**
+4. 子 agent 异常（无完成标记）→ **不自动重试**，直接告知用户并保持当前阶段
+5. **禁止自行 `git push`**：仅在用户明确指令时执行。git commit 后不自动 push
+6. Commit 阶段审查通过后**必须等待用户确认**才能执行 git commit，不可跳过
