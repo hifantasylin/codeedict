@@ -24,13 +24,25 @@
 
 ## 路径解析
 
-**所有 `workspace/` 开头的路径需要解析为实际路径**：
+Codeedict 使用两级存储，agent 需掌握两种路径定位方式：
 
-1. 读 `~/.codeedict/codeedict-config.json` 获取 `workspacePath`
-2. 将 `workspace/` 替换为 `<workspacePath>/`
-3. 例：`workspacePath` = `F:\CodeedictWorkspace` → `workspace/projects/autovideo/project-context.md` = `F:\CodeedictWorkspace\projects\autovideo\project-context.md`
+**全局路径**（`~/.codeedict/`）：
+直接硬编码路径，用于跨项目共享：`~/.codeedict/projects.json`、`~/.codeedict/metrics.md`、`~/.codeedict/knowledge/`
 
-> 此规则同样适用于所有子 agent。主 Agent 委派子 agent 时，子 agent 按此规则自行解析路径，无需主 Agent 传递实际路径。
+**项目内路径**：
+1. 通过 `projectId` 读 `~/.codeedict/projects.json` → 获取 `rootPath`
+2. 拼接项目内路径：
+   - `<rootPath>/project-context.md` — 架构地图 + 工具链
+   - `<rootPath>/docs/proposals/<taskId>.md` — 方案文档
+   - `<rootPath>/docs/analysis/<taskId>-analysis.md` — 分析报告
+   - `<rootPath>/docs/requirements/<taskId>-req.md` — 需求文档
+   - `<rootPath>/docs/archive.md` — 归档索引
+   - `<rootPath>/.codeedict/tasks/<taskId>-tasks.md` — 编码拆解
+   - `<rootPath>/.codeedict/task-tracker.md` — 活跃任务
+   - `<rootPath>/.codeedict/pending-issues.md` — 待处理问题
+   - `<rootPath>/.codeedict/states/<taskId>.json` — MCP 状态（agent 不直接读写，仅 Archive 清理时 read path）
+
+> 子 agent 按此规则自行解析路径，无需主 Agent 传递实际路径。
 
 ## 路由表
 
@@ -89,15 +101,15 @@
 
 不切换状态机，主 Agent 直接处理。
 
-1. 用户指定项目路径后，宣布 `🏗️ 开始项目初始化`
-2. 读项目文件自动探测工具链，写入 `workspace/projects/<projectId>/project.json`
-3. 在 `workspace/projects/projects.md` 登记项目
-4. 从 `templates/` 复制 `pending-issues.md`、`archive-index.md` 等骨架
+1. 用户指定项目路径 `<rootPath>` 后，宣布 `🏗️ 开始项目初始化`
+2. 读项目文件自动探测工具链，写入 `<rootPath>/project-context.md` 的「工具链」章节
+3. 在 `~/.codeedict/projects.json` 登记项目（`projectId → { name, path: rootPath }`）
+4. 创建 `<rootPath>/.codeedict/` 目录（注入 `.gitignore` 忽略该目录）和 `<rootPath>/docs/` 子目录
 5. **扫描架构惯例**：
    - 用 `search_content` 扫描全项目 `^\s*import.*from|require\(|#include`，汇总为双向边表
    - 搜索项目代码中重复出现的命名/分层/继承模式
    - **探测测试体系**：扫描测试框架配置 + 测试目录 + 测试文件模式 + 测试命令 → 写入「测试体系」章节
-   - 按 `templates/project-context.md` 模板写入 `workspace/projects/<projectId>/project-context.md`
+   - 按 `templates/project-context.md` 模板写入 `<rootPath>/project-context.md`
    - 自动写入，仅告知用户生成摘要（章节数 + 依赖边数 + 反模式数 + 测试体系）
 6. **新项目判定**：扫描后若各章节全空（或仅 1-2 条）→ 判定为新项目 → 进入 AI 诊断式对话（见下方"新项目引导"）
 
@@ -105,7 +117,7 @@
 
 不切换状态机。用户指令 `刷新规范 <projectId>`：
 
-1. 重新扫描项目源码，更新 `workspace/projects/<projectId>/project-context.md`
+1. 重新扫描项目源码，更新 `<rootPath>/project-context.md`
 2. 对比上次版本，自动保存变更
 3. 告知用户变更摘要（新增/变更/删除的惯例数量）
 
@@ -125,7 +137,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 1. 调用 `codeedict_init`（`initial_stage` = `clarify`，`project_id` = `<projectId>`），宣布 `💡 进入需求澄清阶段`
    - 若返回 `blocked: project_not_initialized` → 先执行 🏗️ 项目初始化（静默），完成后重试 `codeedict_init`
 2. 以"需求梳理者"人格逐轮追问（3–5 轮），覆盖：做什么、谁用、场景、边界、技术约束
-3. 需求确认 → 写入 `workspace/projects/<projectId>/docs/<taskId>-requirements.md`
+3. 需求确认 → 写入 `<rootPath>/docs/requirements/<taskId>-req.md`
 4. 调用 `codeedict_stage` 切换到 `analyze`，宣布 `🔍 转入分析阶段`
 5. 继续执行 🔍 Analyze 入口的 **"从 Clarify 转入"** 路径
 
@@ -140,7 +152,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 3. analyst 通过 `[AGENT:COMPLETED]` 汇报 → 主 Agent 切换至 `review`
 
 **从 Clarify 转入**（需求已确认，当前阶段 = `analyze`）：
-1. 告知分析师读取 `workspace/projects/<projectId>/docs/<taskId>-requirements.md`
+1. 告知分析师读取 `<rootPath>/docs/requirements/<taskId>-req.md`
 2. 委派 `codeedict-analyst`，产出同上
 
 **审查 → 卡点 → 分支**：
@@ -207,23 +219,23 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 
 统一归档流程，**全程自动执行，不等待用户确认**。调用 `codeedict_stage` 切到 `archive`，宣布 `📦 进入归档封存阶段`：
 
-1. **登记索引**：在 `archive/index.md` 追加索引行
-2. **清理状态**：用 `delete_file` 工具删除 `~/.codeedict/tasks/<taskId>.json`
-3. **待处理回顾**（仅代码修改后）：读 `workspace/pending-issues.md` 输出摘要
+1. **登记索引**：在 `<rootPath>/docs/archive.md` 追加索引行
+2. **清理状态**：用 `delete_file` 工具删除 `<rootPath>/.codeedict/states/<taskId>.json`
+3. **待处理回顾**（仅代码修改后）：读 `<rootPath>/.codeedict/pending-issues.md` 输出摘要
 4. **规范提炼**（仅代码修改后）：
-   a. 扫描新增文件的命名模式 → 对比 `project-context.md` → 新发现的追加（不覆盖）
+   a. 扫描新增文件的命名模式 → 对比 `<rootPath>/project-context.md` → 新发现的追加（不覆盖）
    b. **反模式提取**（仅 bugfix）：从 proposal 提取错误模式追加到反模式表
    c. **依赖图增量**：重扫变更文件的 import → diff 追加/移除边，不重扫全项目
-5. **指标记录**：在 `workspace/metrics.md` 追加一行
+5. **指标记录**：在 `~/.codeedict/metrics.md` 追加一行
 
 ### 📊 Weekly
 
 只读操作，不切换状态机。按 `weekly-report.md` 模板三栏输出（已完成 / 进行中 / 受阻），附统计。
 "本周"范围：周一到当前日期。
 
-1. 遍历 `workspace/projects/` 下所有 `task-tracker.md`，提取本周有更新的任务
-2. 读各项目 `archive/index.md`，提取本周归档
-3. 读 `workspace/metrics.md`，输出**效率趋势**：
+1. 读 `~/.codeedict/projects.json` 获取所有项目 rootPath，遍历各项目的 `.codeedict/task-tracker.md`，提取本周有更新的任务
+2. 读各项目的 `docs/archive.md`，提取本周归档
+3. 读 `~/.codeedict/metrics.md`，输出**效率趋势**：
    - 本周完成数 / 平均驳回次数 / 驳回率
    - 💡 建议（如"本周驳回率偏高，关注审查官驳回原因"）
 4. 无数据时如实报告"本周暂无活动"

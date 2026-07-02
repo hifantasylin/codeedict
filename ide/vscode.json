@@ -1,6 +1,6 @@
 {
   "placeholders": {
-    "{{CONFIG_PATH}}": "~/.codeedict/codeedict-config.json",
+
     "{{AGENT_DIR}}": "%APPDATA%\\Code\\User\\agents\\codeedict",
     "{{EDIT_CMD}}": "edit",
     "{{READ_CMD}}": "read"

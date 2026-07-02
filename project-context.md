@@ -28,9 +28,9 @@ codeedict/
 ├── scripts/                ← 构建+测试脚本
 │   ├── build.js            ← 模板→部署目录 + 占位符替换
 │   └── test.js             ← 状态机单元测试
-├── templates/              ← 复制到 workspace 的项目骨架
-│   ├── project-context.md  ← 给用户项目的架构模板（含测试体系章节）
-│   ├── project.json        ← 工具链配置模板
+├── templates/              ← 复制到部署目录的项目模板骨架
+│   ├── project-context.md  ← 给用户项目的架构模板（含工具链章节）
+│   ├── projects.json       ← 全局项目登记簿模板
 │   ├── proposal-bugfix.md
 │   ├── proposal-feature.md
 │   └── ...
@@ -127,4 +127,4 @@ codeedict/
 
 | 症状 | 错误 | 正确做法 |
 |------|------|----------|
-| Agent 在项目目录下新建 `workspace/` | Agent 模板里有 `workspace/projects/...` 路径，但没有告诉 Agent 怎么解析 | **每个读/写 workspace 的 Agent 模板必修含「路径解析」段**：读 `{{CONFIG_PATH}}` → 取 `workspacePath` → 拼接实际路径 |
+| Agent 路径解析错误，读/写文件到错误位置 | Agent 模板引用路径没有统一规范 | **每个 Agent 模板必修含「路径解析」段**：全局路径 `~/.codeedict/` + 通过 `projects.json` 查项目根路径 |

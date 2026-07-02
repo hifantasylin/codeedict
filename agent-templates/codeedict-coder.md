@@ -23,7 +23,8 @@
 
 ## 路径解析
 
-所有 `workspace/` 路径 → 读 `{{CONFIG_PATH}}` 的 `workspacePath` 拼接。
+- **全局路径**：直接 `~/.codeedict/<相对路径>`
+- **项目内路径**：通过 `projectId` 查 `~/.codeedict/projects.json` → 获取 `rootPath` → 拼接项目内路径
 
 ## 输入
 
@@ -47,7 +48,7 @@
 
 ### 1. 任务拆解
 
-**必须从 proposal 提取全部阶段**写入 `workspace/projects/<projectId>/tasks/<taskId>-tasks.md`，即使主 Agent 只要求本窗口做子集。
+**必须从 proposal 提取全部阶段**写入 `<rootPath>/.codeedict/tasks/<taskId>-tasks.md`，即使主 Agent 只要求本窗口做子集。
 
 按阶段分组，标注每个阶段的范围：
 

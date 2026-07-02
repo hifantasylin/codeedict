@@ -10,11 +10,11 @@ const os = require('os');
 const fs = require('fs');
 
 const TMP = path.join(os.tmpdir(), 'codeedict-test-' + Date.now());
-process.env.CODEEDICT_CONFIG = path.join(TMP, 'codeedict-config.json');
+const CODEEDICT_HOME = path.join(TMP, '.codeedict');
+process.env.CODEEDICT_HOME = CODEEDICT_HOME;
 
-// 创建临时 workspace
-fs.mkdirSync(TMP, { recursive: true });
-fs.writeFileSync(process.env.CODEEDICT_CONFIG, JSON.stringify({ workspacePath: TMP }), 'utf-8');
+// 创建临时全局目录
+fs.mkdirSync(CODEEDICT_HOME, { recursive: true });
 
 // 加载 check.js
 const { cmdInit, cmdStage, cmdWrite, cmdStatus, cmdTransitions, Stage } = require('../check.js');
@@ -58,9 +58,8 @@ assert(!!r2.hint, '返回 hint 字段');
 // 测试 3：初始化项目后 init 成功
 // ═══════════════════════════════════════════
 console.log('\n📋 3. codeedict_init 项目就绪门禁（已初始化）');
-const projectDir = path.join(TMP, 'projects', 'testproj');
-fs.mkdirSync(projectDir, { recursive: true });
-fs.writeFileSync(path.join(projectDir, 'project.json'), JSON.stringify({ projectId: 'testproj' }), 'utf-8');
+// 在 projects.json 中登记项目
+fs.writeFileSync(path.join(CODEEDICT_HOME, 'projects.json'), JSON.stringify({ testproj: { name: '测试项目', path: TMP } }), 'utf-8');
 const r3 = cmdInit('testproj-C03-ok', '', '', 'testproj');
 assert(r3.allowed === true, '已初始化 + project_id → 允许创建');
 
@@ -75,7 +74,7 @@ const r4a = cmdStage(TASK, Stage.Review);
 assert(r4a.allowed === true, 'analyze → review 允许');
 // 模拟 review 通过
 const s4 = cmdStatus(TASK);
-const statePath4 = path.join(os.homedir(), '.codeedict', 'tasks', TASK + '.json');
+const statePath4 = path.join(TMP, '.codeedict', 'states', TASK + '.json');
 const state4 = JSON.parse(fs.readFileSync(statePath4, 'utf-8'));
 state4.checkpoints = { review_audited: true, review_approved: true };
 fs.writeFileSync(statePath4, JSON.stringify(state4));

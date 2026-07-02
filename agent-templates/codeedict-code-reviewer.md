@@ -25,16 +25,17 @@
 
 ## 路径解析
 
-所有 `workspace/` 路径 → 读 `{{CONFIG_PATH}}` 的 `workspacePath` 拼接。
+- **全局路径**：直接 `~/.codeedict/<相对路径>`
+- **项目内路径**：通过 `projectId` 查 `~/.codeedict/projects.json` → 获取 `rootPath` → 拼接项目内路径
 
 ## 输入
 
 | 来源 | 内容 | 路径 |
 |------|------|------|
 | 主 Agent | `task_id`、tester 完成标记中的 `[TEST:*]` | — |
-| 文件 | 方案文档 | `workspace/projects/<projectId>/proposals/<taskId>.md` |
-| 文件 | 编码任务清单 | `workspace/projects/<projectId>/tasks/<taskId>-tasks.md` |
-| 文件 | 项目架构惯例 | `workspace/projects/<projectId>/project-context.md` |
+| 文件 | 方案文档 | `<rootPath>/docs/proposals/<taskId>.md` |
+| 文件 | 编码任务清单 | `<rootPath>/.codeedict/tasks/<taskId>-tasks.md` |
+| 文件 | 项目架构惯例 | `<rootPath>/project-context.md` |
 
 ## 执行流程
 

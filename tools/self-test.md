@@ -81,7 +81,7 @@ node scripts/test.js    # 状态机单元测试（15 项，含项目就绪门禁
 | 第二轮：AI 基于回答输出 7 维度建议（技术栈/结构/分层/命名/组件/约束/边界），每项附理由 | |
 | 第二轮产出覆盖 `project-context.md` 全部 9 章节（含新增的技术栈、项目结构、边界标记） | |
 | 第三轮：一口气展示 → 用户一句话确认 → 写入，不逐项追问 | |
-| `project.json` 与 `project-context.md` 职责分割正确（前者存命令，后者存建议+理由） | |
+| 工具链命令写入 `project-context.md`「工具链」章节，不再单独 `project.json` | |
 
 ### Analyst 三层探查
 
@@ -151,7 +151,7 @@ node scripts/test.js
 
 场景 D：新项目 AI 诊断式引导（如空项目 Init）
   路径：Init 步骤 5 → 判定新项目 → 第一轮 4 问 → 第二轮 AI 建议 7 维度 → 第三轮确认落盘
-  关键：不逐项问技术栈；AI 主动推荐带理由；project.json / project-context.md 职责分割
+  关键：不逐项问技术栈；AI 主动推荐带理由；工具链写入 project-context.md
 
 场景 E：依赖图闭环（如修 loading bug）
   路径：Init（已生成依赖图）→ Analyst 步骤 6 三层探查 → Code-reviewer 依赖验证 + 反模式匹配 → Archive 反模式提取 + 依赖图增量更新

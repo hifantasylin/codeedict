@@ -1,6 +1,6 @@
 {
   "placeholders": {
-    "{{CONFIG_PATH}}": "~/.codeedict/codeedict-config.json",
+
     "{{AGENT_DIR}}": "~/.codebuddy/agents/codeedict",
     "{{EDIT_CMD}}": "replace_in_file",
     "{{READ_CMD}}": "read_file"

@@ -22,7 +22,7 @@
 
 📈 统计：X 完成 / Y 进行中 / Z 受阻
 
-## 📉 效率趋势（来源：workspace/metrics.md）
+## 📉 效率趋势（来源：`~/.codeedict/metrics.md`）
 
 | 指标 | 本周 | 上周 | 变化 |
 |------|------|------|:---:|
@@ -38,13 +38,13 @@
 
 | 栏目 | 来源 |
 |------|------|
-| 已完成 | 各项目 `archive/YYYY-MM/` 下本周归档的任务 |
-| 进行中 | 各项目 `task-tracker.md` 中本周有更新的活跃任务（含 ⏳/🔧 状态） |
-| 受阻 | 各项目 `task-tracker.md` 中 ⚠️ 状态的任务 |
-| 效率趋势 | `workspace/metrics.md`（每周归档时自动追加） |
+| 已完成 | 各项目 `docs/archive.md` 中本周归档的任务 |
+| 进行中 | 各项目 `.codeedict/task-tracker.md` 中本周有更新的活跃任务（含 ⏳/🔧 状态） |
+| 受阻 | 各项目 `.codeedict/task-tracker.md` 中 ⚠️ 状态的任务 |
+| 效率趋势 | `~/.codeedict/metrics.md`（每次 Archive 时自动追加） |
 
 ## 规则
 
 - "本周"范围：本周一 00:00 到当前日期
-- 跨项目汇总：遍历 `workspace/projects/` 下所有项目
+- 跨项目汇总：读 `~/.codeedict/projects.json` 获取所有项目 rootPath，遍历各项目
 - 无数据时输出"本周暂无活动"而非空表

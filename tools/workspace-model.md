@@ -1,60 +1,82 @@
 # AI码律 工作空间模型
 
-路径：`<workspace-path>`（由 `~/.codeedict/codeedict-config.json` 中的 `workspacePath` 指定）
+Codeedict 使用两级存储：全局 `~/.codeedict/` + 项目目录。
 
-## 目录结构
+## 全局目录 `~/.codeedict/`
+
+路径固定，无需配置。所有跨项目共享的 agent 状态存这里。
 
 ```
-<workspace-path>/
-├── projects.md                          ← 项目登记簿（所有项目索引）
-├── pending-issues.md                    ← 全局待处理问题
-├── projects/
-│   └── <projectId>/
-│       ├── project.json                 ← 工具链 + 项目摘要
-│       ├── project-context.md          ← 项目全部上下文（技术栈/结构/边界/依赖/反模式）
-│       ├── task-tracker.md              ← 本项目活跃任务
-│       ├── pending-issues.md            ← 本项目待处理问题
-│       ├── proposals/                   ← 方案文档（六段格式）
-│       │   └── <taskId>.md
-│       ├── docs/                        ← 分析报告、调试记录
-│       │   └── <taskId>-analysis.md
-│       ├── tasks/                       ← 编码任务拆解清单
-│       │   └── <taskId>-tasks.md
-│       └── archive/                     ← 归档索引
-│           └── index.md
-├── metrics.md                           ← 任务指标（Archive 自动追加）
-├── logs/                                ← 调试日志
-└── knowledge/                           ← 审查模式库
-    ├── index.md
+~/.codeedict/
+├── projects.json                        ← 项目登记簿（projectId → rootPath）
+├── metrics.md                           ← 跨项目效率指标
+└── knowledge/                           ← 审查模式库（用户编辑）
     ├── security.md
     ├── performance.md
     └── reliability.md
 ```
 
-## 各目录/文件职责
+| 文件 | 职责 | 读写方 |
+|------|------|--------|
+| `projects.json` | projectId → {name, path} 映射。check.js 启动时加载到内存缓存，agent 通过此文件定位项目根路径 | 主 Agent 初始化时写入，check.js 只读 |
+| `metrics.md` | 任务效率指标（日期/类型/阶段数/驳回次数/模式） | 主 Agent (Archive) 追加 |
+| `knowledge/*.md` | 审查模式库（安全/性能/可靠性清单） | 审查官只读引用，用户手动编辑 |
+
+## 项目根目录 `<projectRoot>/`
+
+项目特有的文件回归项目内。按 git 策略分为两类：
+
+```
+<projectRoot>/
+├── project-context.md                 ← git ✅  架构地图 + 工具链
+├── .codeedict/                        ← git ❌（.gitignore 一行）
+│   ├── tasks/<taskId>-tasks.md
+│   ├── task-tracker.md
+│   ├── pending-issues.md
+│   └── states/<taskId>.json
+├── docs/                              ← git ✅  项目知识库
+│   ├── proposals/<taskId>.md
+│   ├── analysis/<taskId>-analysis.md
+│   ├── requirements/<taskId>-req.md
+│   └── archive.md
+└── src/ ...
+```
+
+### git 提交部分（项目知识资产）
 
 | 路径 | 职责 | 读写方 |
 |------|------|--------|
-| `projects.md` | 全局项目登记，含项目ID、路径、描述 | 主 Agent 读写 |
-| `pending-issues.md` | 全局待处理问题 | 主 Agent 读写 |
-| `project.json` | 工具链配置（编译、Lint、部署命令） | Coder/ Analyst 只读 |
-| `project-context.md` | 项目全部上下文：技术栈、项目结构、可复用组件、命名规则、架构分层、边界标记、依赖关系图、反模式、设计约束。读写分离——主 Agent 写入（初始化+新项目引导+Archive+刷新），Analyst/Code-reviewer 只读。可执行命令见 `project.json` |
-| `pending-issues.md` | 项目待处理问题（含架构合规、技术债等类型） | 主 Agent 写入（初始化扫描+Archive提炼），Code-Reviewer 可追加 |
-| `task-tracker.md` | 项目活跃任务列表 | Coder 更新 |
-| `proposals/<taskId>.md` | 六段式方案文档（只读不可改） | 主 Agent（Clarify 阶段）/ Analyst 写入，Coder/Reviewer 只读 |
-| `docs/<taskId>-analysis.md` | 结构化分析报告 | Analyst 写入，Proposal-Reviewer 只读 |
-| `tasks/<taskId>-tasks.md` | 编码任务拆解清单 | Coder 写入，Code-Reviewer 只读 |
-| `archive/index.md` | 已归档任务索引（不搬运文件，只记索引行） | 主 Agent 追加 |
-| `docs/<taskId>-requirements.md` | 需求澄清文档 | 主 Agent（Clarify 阶段）写入，Analyst 只读 |
-| `metrics.md` | 任务效率指标（日期/类型/阶段数/驳回次数/模式） | 主 Agent（Archive 阶段）追加 |
-| `knowledge/*.md` | 审查模式库（安全/性能/可靠性清单） | 审查官只读引用，用户手动编辑 |
+| `project-context.md` | 项目全部上下文：技术栈、项目结构、工具链、可复用组件、命名规则、架构分层、边界标记、测试体系、依赖关系图、反模式、设计约束 | 主 Agent 写入（初始化+新项目引导+Archive+刷新），Analyst/Code-reviewer/Tester 只读 |
+| `docs/proposals/<taskId>.md` | 六段式方案文档 | 主 Agent (Clarify) / Analyst 写入，Coder/Reviewer/Proposal-Reviewer 只读 |
+| `docs/analysis/<taskId>-analysis.md` | 结构化分析报告 | Analyst 写入，Proposal-Reviewer 只读 |
+| `docs/requirements/<taskId>-req.md` | 需求澄清文档 | 主 Agent (Clarify) 写入，Analyst 只读 |
+| `docs/archive.md` | 已归档任务索引（不搬运文件，只记索引行） | 主 Agent 追加 |
 
-## project.json 与 project-context.md 的职责分割
+### git 忽略部分（agent 执行态，高频变化）
 
-| | `project.json` | `project-context.md` |
-|------|----------|----------|
-| 格式 | JSON，机器可读 | Markdown，人可读 |
-| 谁用 | Coder — 读取命令并执行 | Analyst / Code-reviewer — 读取惯例做判断 |
-| 核心内容 | 可执行命令（build/test/lint/deploy） | 规则、建议、边界、依赖 |
-| 技术栈 | `type: "node"` 一行 | 完整选型 + 选型理由 |
-| 关系 | — | 末尾引用：`> 可执行命令见 project.json → toolchain` |
+| 路径 | 职责 | 读写方 |
+|------|------|--------|
+| `.codeedict/tasks/<taskId>-tasks.md` | 编码任务拆解清单 | Coder 写入，Code-Reviewer 只读 |
+| `.codeedict/task-tracker.md` | 项目活跃任务看板 | Coder 更新 |
+| `.codeedict/pending-issues.md` | 项目待处理问题（含架构合规、技术债等） | 主 Agent 写入（初始化扫描+Archive提炼），Code-Reviewer 可追加 |
+| `.codeedict/states/<taskId>.json` | MCP 状态机任务状态 | check.js 读写，agent 不直接访问 |
+
+## 路径解析
+
+Agent 和 check.js 通过 `projects.json` 实现项目路径定位：
+
+### Agent 端
+
+- **全局路径**：直接 `~/.codeedict/<相对路径>`（硬编码）
+- **项目内路径**：通过 `projectId` 查 `~/.codeedict/projects.json` → 拿到 `rootPath` → 拼接 `<rootPath>/project-context.md`、`<rootPath>/docs/...` 等
+
+### check.js 端
+
+启动时一次性加载 `projects.json` 到内存 Map。后续所有 MCP 调用通过 `_getRootPath(projectId)` 获取项目路径，零 I/O。
+
+```js
+// 示例
+const root = _getRootPath(projectId);
+// → const statesDir = path.join(root, '.codeedict', 'states');
+// → const proposalPath = path.join(root, 'docs', 'proposals', `${taskId}.md`);
+```

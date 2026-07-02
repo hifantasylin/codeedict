@@ -27,16 +27,17 @@
 
 ## 路径解析
 
-所有 `workspace/` 路径 → 读 `{{CONFIG_PATH}}` 的 `workspacePath` 拼接。
+- **全局路径**：直接 `~/.codeedict/<相对路径>`（如 `~/.codeedict/projects.json`）
+- **项目内路径**：通过 `projectId` 查 `~/.codeedict/projects.json` → 获取 `rootPath` → 拼接项目内路径
 
 ## 输入
 
 | 来源 | 内容 | 路径 |
 |------|------|------|
 | 主 Agent | `task_id`、任务性质（修改意图 / 纯分析） | — |
-| 文件 | 项目架构惯例（强制首读） | `workspace/projects/<projectId>/project-context.md` |
-| 文件 | 项目工具链配置 | `workspace/projects/<projectId>/project.json` |
-| 文件（Clarify 转入） | 需求说明文档 | `workspace/projects/<projectId>/docs/<taskId>-requirements.md` |
+| 文件 | 项目架构地图（强制首读） | `<rootPath>/project-context.md` |
+| 文件 | 项目工具链配置 | `<rootPath>/project-context.md` → 「工具链」章节 |
+| 文件（Clarify 转入） | 需求说明文档 | `<rootPath>/docs/requirements/<taskId>-req.md` |
 
 ## 执行流程
 
@@ -52,7 +53,7 @@
 ### 完整分析路径（analyze 阶段）
 
 1. **读项目架构地图**（强制第一步）
-   读 `workspace/projects/<projectId>/project-context.md`。
+   读 `<rootPath>/project-context.md`。
 
 2. **优先级评定**
    - `P0` 阻塞不可用 · `P1` 核心路径影响 · `P2` 体验问题 · `P3` 锦上添花
@@ -95,8 +96,8 @@
 
 | 任务性质 | 产出 | 落盘位置 |
 |----------|------|----------|
-| 修改意图 | proposal | `workspace/projects/<projectId>/proposals/<taskId>.md` |
-| 纯分析 | 分析报告 | `workspace/projects/<projectId>/docs/<taskId>-analysis.md` |
+| 修改意图 | proposal | `<rootPath>/docs/proposals/<taskId>.md` |
+| 纯分析 | 分析报告 | `<rootPath>/docs/analysis/<taskId>-analysis.md` |
 
 格式：背景（含用户原话）、目标、方案、复用评估、备选方案、影响面、异常路径、回滚方案。
 
@@ -129,7 +130,7 @@
 
 ## Key Rules
 
-1. **不修改项目源码**，但必须写 workspace 文档（reports/proposals）
+1. **不修改项目源码**，但必须写文档（proposals/reports）
 2. **驳回复审走快速路径**：阶段=`review` → 只读审查意见 → 只修被驳回段落，不重跑完整分析
 3. 历史索引命中时引用历史方案
 4. 修改意图 → proposal 写入 `proposals/<taskId>.md`（增量写，边分析边填）

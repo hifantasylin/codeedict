@@ -13,30 +13,37 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 // ══════════════════════════════════════════════════════════
-//  Workspace 探测
+//  全局路径 & 项目定位
 // ══════════════════════════════════════════════════════════
 
-function _detectWorkspace() {
-    const configPath = process.env.CODEEDICT_CONFIG || path.join(os.homedir(), '.codeedict', 'codeedict-config.json');
-    if (!fs.existsSync(configPath)) {
-        throw new Error(`配置文件不存在: ${configPath}\n请先安装 AI码律`);
+const WORKSPACE_BASE = process.env.CODEEDICT_HOME || path.join(os.homedir(), '.codeedict');
+const WORKSPACE = WORKSPACE_BASE;
+const PROJECTS_JSON = path.join(WORKSPACE, 'projects.json');
+
+// 启动时加载项目登记表到内存，后续查询零 I/O
+let _projectMap = null;
+function _loadProjectMap() {
+    if (_projectMap !== null) return;  // 已加载
+    _projectMap = Object.create(null);
+    if (!fs.existsSync(PROJECTS_JSON)) return;  // 首次使用尚无文件
+    const data = JSON.parse(fs.readFileSync(PROJECTS_JSON, 'utf-8').replace(/^\uFEFF/, ''));
+    for (const [id, info] of Object.entries(data)) {
+        _projectMap[id] = info.path;
     }
-    const raw = fs.readFileSync(configPath, 'utf-8').replace(/^\uFEFF/, '');
-    const config = JSON.parse(raw);
-    if (!config.workspacePath) {
-        throw new Error(`配置文件中缺少 workspacePath: ${configPath}`);
-    }
-    if (!fs.existsSync(config.workspacePath)) {
-        throw new Error(`workspace 目录不存在: ${config.workspacePath}\n请在配置文件中设置正确的路径`);
-    }
-    return config.workspacePath;
 }
 
-const WORKSPACE = _detectWorkspace();
-const PROJECTS_DIR = path.join(WORKSPACE, 'projects');
-const TASK_STATES_DIR = path.join(os.homedir(), '.codeedict', 'tasks');
+// 通过 projectId 获取项目根路径
+function _getRootPath(projectId) {
+    _loadProjectMap();
+    return _projectMap[projectId] || null;
+}
 
-if (!fs.existsSync(TASK_STATES_DIR)) fs.mkdirSync(TASK_STATES_DIR, { recursive: true });
+// MCP 状态文件按项目隔离到 <rootPath>/.codeedict/states/
+function _resolveStatesDir(projectId) {
+    const root = _getRootPath(projectId);
+    if (!root) return path.join(WORKSPACE, 'states');  // 兜底：全局 states
+    return path.join(root, '.codeedict', 'states');
+}
 
 // ══════════════════════════════════════════════════════════
 //  状态定义
@@ -72,15 +79,20 @@ const WRITE_ALLOWED_STAGES = new Set([Stage.Code]);
 // ══════════════════════════════════════════════════════════
 
 function _loadState(taskId) {
-    const newPath = path.join(TASK_STATES_DIR, `${taskId}.json`);
-    if (fs.existsSync(newPath)) return JSON.parse(fs.readFileSync(newPath, 'utf-8').replace(/^\uFEFF/, ''));
-    const oldPath = path.join(WORKSPACE, 'states', `${taskId}.json`);
+    const projectId = _projectIdFromTask(taskId);
+    const statesDir = _resolveStatesDir(projectId);
+    const filePath = path.join(statesDir, `${taskId}.json`);
+    if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8').replace(/^\uFEFF/, ''));
+    // 兼容旧路径：全局 ~/.codeedict/tasks/
+    const oldPath = path.join(WORKSPACE, 'tasks', `${taskId}.json`);
     if (fs.existsSync(oldPath)) return JSON.parse(fs.readFileSync(oldPath, 'utf-8').replace(/^\uFEFF/, ''));
     return null;
 }
 
 function _saveState(taskId, state) {
-    const filePath = path.join(TASK_STATES_DIR, `${taskId}.json`);
+    const projectId = _projectIdFromTask(taskId);
+    const statesDir = _resolveStatesDir(projectId);
+    const filePath = path.join(statesDir, `${taskId}.json`);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf-8');
 }
@@ -93,7 +105,9 @@ function _projectIdFromTask(taskId) {
 
 function _readProposal(taskId) {
     const projectId = _projectIdFromTask(taskId);
-    const proposalPath = path.join(PROJECTS_DIR, projectId, 'proposals', `${taskId}.md`);
+    const root = _getRootPath(projectId);
+    if (!root) return null;
+    const proposalPath = path.join(root, 'docs', 'proposals', `${taskId}.md`);
     if (fs.existsSync(proposalPath)) return fs.readFileSync(proposalPath, 'utf-8');
     return null;
 }
@@ -106,14 +120,18 @@ function _ok(data) { return { ...data, allowed: true }; }
 function _block(reason) { return { allowed: false, blocked: reason }; }
 
 function cmdInit(taskId, proposalPath = '', initialStage = '', projectId = '') {
-    // 项目就绪门禁：传了 project_id 则检查项目 workspace 是否已初始化
+    // 项目就绪门禁：传了 project_id 则检查 projects.json 中是否已登记
     if (projectId) {
-        const projectDir = path.join(PROJECTS_DIR, projectId);
-        const projectJson = path.join(projectDir, 'project.json');
-        if (!fs.existsSync(projectJson)) {
-            return { allowed: false, blocked: 'project_not_initialized', project_id: projectId, project_dir: projectDir,
-                message: `项目 ${projectId} 尚未初始化，workspace 数据目录不存在。请先执行项目初始化。`,
-                hint: '运行项目初始化流程：探测工具链 + 扫描架构惯例 + 创建 workspace 目录骨架' };
+        _loadProjectMap();
+        if (!_projectMap[projectId]) {
+            // 可能是刚写入，强制重载
+            _projectMap = null;
+            _loadProjectMap();
+        }
+        if (!_projectMap[projectId]) {
+            return { allowed: false, blocked: 'project_not_initialized', project_id: projectId,
+                message: `项目 ${projectId} 尚未初始化，未在 projects.json 中登记。请先执行项目初始化。`,
+                hint: '运行项目初始化流程：探测工具链 + 扫描架构惯例 + 在 projects.json 登记项目' };
         }
     }
     const stage = Object.values(Stage).includes(initialStage) ? initialStage : Stage.Clarify;
@@ -216,8 +234,9 @@ function cmdCheckEntry(taskId, newStage) {
     if (!state) return _block(`任务 ${taskId} 不存在，请先 init`);
     if (newStage === Stage.Code) {
         const projectId = _projectIdFromTask(taskId);
-        const proposalPath = path.join(PROJECTS_DIR, projectId, 'proposals', `${taskId}.md`);
-        if (!fs.existsSync(proposalPath)) return _block(`缺少方案文件: ${proposalPath}\nCode 模式需要先完成 Review 阶段生成方案文档`);
+        const root = _getRootPath(projectId);
+        const proposalPath = root ? path.join(root, 'docs', 'proposals', `${taskId}.md`) : null;
+        if (!proposalPath || !fs.existsSync(proposalPath)) return _block(`缺少方案文件: ${proposalPath}\nCode 模式需要先完成 Review 阶段生成方案文档`);
         const cps = state.checkpoints || {};
         if (!cps.review_approved) return _block(`Review 硬卡点尚未批准，请先 approve ${taskId} review`);
     }
@@ -291,7 +310,7 @@ const MCP_TOOLS = [
     },
     {
         name: 'codeedict_init',
-        description: '初始化新任务，创建状态文件。可指定初始阶段（默认 clarify，分析类任务应传 analyze）。传 project_id 会先检查项目 workspace 是否就绪，未就绪则返回 blocked=project_not_initialized 拒绝创建。',
+        description: '初始化新任务，创建状态文件。可指定初始阶段（默认 clarify，分析类任务应传 analyze）。传 project_id 会先检查 projects.json 中是否已登记该项目，未登记则返回 blocked=project_not_initialized。',
         inputSchema: { type: 'object', properties: { task_id: { type: 'string', description: '任务 ID，格式 projectId-B/F/R/A编号-简短描述' }, proposal_path: { type: 'string', description: '可选，proposal 文件路径' }, initial_stage: { type: 'string', description: '可选，初始阶段。分析类任务传 analyze，修改类任务默认 clarify' }, project_id: { type: 'string', description: '可选。传入后强制检查项目 workspace 是否已初始化（project.json 是否存在），未就绪则拒绝创建任务' } }, required: ['task_id'] },
     },
     {
@@ -367,7 +386,7 @@ function sendMcp(data) {
 //  导出（供测试使用）
 // ══════════════════════════════════════════════════════════
 
-module.exports = { cmdInit, cmdStage, cmdWrite, cmdStatus, cmdCheckEntry, cmdTransitions, cmdApprove, cmdReviewed, cmdRejected, cmdWait, Stage, WORKSPACE, PROJECTS_DIR, TASK_STATES_DIR };
+module.exports = { cmdInit, cmdStage, cmdWrite, cmdStatus, cmdCheckEntry, cmdTransitions, cmdApprove, cmdReviewed, cmdRejected, cmdWait, Stage, WORKSPACE };
 
 // ══════════════════════════════════════════════════════════
 //  CLI 入口

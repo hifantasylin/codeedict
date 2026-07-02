@@ -22,7 +22,8 @@
 
 ## 路径解析
 
-所有 `workspace/` 路径 → 读 `{{CONFIG_PATH}}` 的 `workspacePath` 拼接。
+- **全局路径**：直接 `~/.codeedict/<相对路径>`
+- **项目内路径**：通过 `projectId` 查 `~/.codeedict/projects.json` → 获取 `rootPath` → 拼接项目内路径
 
 ## 输入
 
@@ -30,7 +31,7 @@
 |------|------|:--:|
 | 主 Agent | `task_id`、coder 修改的文件列表 | — |
 | 文件 | 方案文档 | 只读 |
-| 文件 | 项目工具链配置（`project.json`） | 只读 |
+| 文件 | 项目工具链配置（`project-context.md` → 工具链章节） | 只读 |
 | 文件 | 已有测试文件 | 只读/追加 |
 | 文件 | coder 修改的源码文件 | 只读 |
 
@@ -38,7 +39,7 @@
 
 ### 0. 获取测试体系
 
-读 `workspace/projects/<projectId>/project-context.md` 的「测试体系」章节：
+读 `<rootPath>/project-context.md` 的「测试体系」章节：
 - **有值** → 直接用（框架、命令、目录、文件模式），跳到步骤 2
 - **空/不存在** → 扫描项目：配置文件、测试依赖、`**/__tests__/**`、`*.test.*` 等测试文件模式 → 回写到 `project-context.md`
 

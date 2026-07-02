@@ -105,19 +105,7 @@ AI自行判断当前使用的 AI 编辑器，无需询问用户：
 }
 ```
 
-### 5. 创建配置和 workspace
-
-- 询问用户 workspace 存放路径，确认后创建目录及 `projects/` 子目录
-- 写入 `~/.codeedict/codeedict-config.json`（双平台统一路径）：
-
-```json
-{
-  "workspacePath": "<用户确认的路径>",
-  "projectsRoot": ""
-}
-```
-
-### 6. 验证并告知用户
+### 5. 验证并告知用户
 
 **必做：验证 MCP 服务是否正常。** 执行 `node <build-dir>/check.js --help` 或 `node <build-dir>/check.js status`，确保无报错。如果报错（如 BOM 导致的 JSON 解析失败），修复后重试。
 

@@ -30,13 +30,14 @@
 | 来源 | 内容 | 路径 |
 |------|------|------|
 | 主 Agent | `task_id` | — |
-| 文件（Code 模式） | 六段式方案 | `workspace/projects/<projectId>/proposals/<taskId>.md` |
-| 文件（Analyze 模式） | 分析报告 | `workspace/projects/<projectId>/docs/<taskId>-analysis.md` |
-| 文件 | 审查模式库 | `workspace/knowledge/security.md` `performance.md` `reliability.md`：安全/性能/可靠性审查时引用模式 ID，已覆盖的标注 `✅ SEC-01` 跳过，新发现的标注 `🆕` |
+| 文件（Code 模式） | 六段式方案 | `<rootPath>/docs/proposals/<taskId>.md` |
+| 文件（Analyze 模式） | 分析报告 | `<rootPath>/docs/analysis/<taskId>-analysis.md` |
+| 文件 | 审查模式库 | `~/.codeedict/knowledge/security.md` `performance.md` `reliability.md`
 
 ## 路径解析
 
-所有 `workspace/` 路径 → 读 `{{CONFIG_PATH}}` 的 `workspacePath` 拼接。
+- **全局路径**：直接 `~/.codeedict/<相对路径>`
+- **项目内路径**：通过 `projectId` 查 `~/.codeedict/projects.json` → 获取 `rootPath` → 拼接项目内路径
 
 ## 执行流程
 
