@@ -40,6 +40,8 @@
 - 项目内：`<rootPath>/docs/proposals/<taskId>.md`、`<rootPath>/docs/analysis/<taskId>-analysis.md`
 - 全局：`~/.codeedict/knowledge/`
 
+> **并行读取**：需要读多个文件时，同时发起多个调用，不要逐个串行。
+
 ## 执行流程
 
 ### 1. 模式判断
