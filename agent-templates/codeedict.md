@@ -216,13 +216,12 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 统一归档流程，**全程自动执行，不等待用户确认**。调用 `codeedict_stage` 切到 `archive`，宣布 `📦 进入归档封存阶段`：
 
 1. **登记索引**：在 `<rootPath>/docs/archive.md` 追加索引行
-2. **清理状态**：用 `delete_file` 工具删除 `<rootPath>/.codeedict/states/<taskId>.json`
-3. **待处理回顾**（仅代码修改后）：读 `<rootPath>/.codeedict/pending-issues.md` 输出摘要
-4. **规范提炼**（仅代码修改后）：
+2. **待处理回顾**（仅代码修改后）：读 `<rootPath>/.codeedict/pending-issues.md` 输出摘要
+3. **规范提炼**（仅代码修改后）：
    a. 扫描新增文件的命名模式 → 对比 `<rootPath>/project-context.md` → 新发现的追加（不覆盖）
    b. **反模式提取**（仅 bugfix）：从 proposal 提取错误模式追加到反模式表
    c. **依赖图增量**：重扫变更文件的 import → diff 追加/移除边，不重扫全项目
-5. **指标记录**：在 `~/.codeedict/metrics.md` 追加一行
+4. **指标记录**：在 `~/.codeedict/metrics.md` 追加一行
 
 ### 📊 Weekly
 
