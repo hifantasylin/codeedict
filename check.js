@@ -310,7 +310,7 @@ const MCP_TOOLS = [
     },
     {
         name: 'codeedict_init',
-        description: '初始化新任务，创建状态文件。可指定初始阶段（默认 clarify，分析类任务应传 analyze）。传 project_id 会先检查 projects.json 中是否已登记该项目，未登记则返回 blocked=project_not_initialized。',
+        description: '初始化新任务，创建状态文件（存于 <rootPath>/.codeedict/states/）。可指定初始阶段（默认 clarify，分析类任务应传 analyze）。传 project_id 会检查 projects.json 中是否已登记，未登记则返回 blocked=project_not_initialized。状态文件按项目隔离，通过 projects.json 查项目根路径定位。',
         inputSchema: { type: 'object', properties: { task_id: { type: 'string', description: '任务 ID，格式 projectId-B/F/R/A编号-简短描述' }, proposal_path: { type: 'string', description: '可选，proposal 文件路径' }, initial_stage: { type: 'string', description: '可选，初始阶段。分析类任务传 analyze，修改类任务默认 clarify' }, project_id: { type: 'string', description: '可选。传入后强制检查项目 workspace 是否已初始化（project.json 是否存在），未就绪则拒绝创建任务' } }, required: ['task_id'] },
     },
     {

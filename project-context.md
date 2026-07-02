@@ -73,7 +73,7 @@ codeedict/
 | 1 | 子 Agent **绝不**调用 `codeedict_stage` | 阶段切换只有主 Agent 能做 |
 | 2 | 子 Agent 开工第一件事：`codeedict_status` 校验阶段 | 不匹配则 `[AGENT:REJECTED:expected=...]` |
 | 3 | 修改模板后**必须**跑 `node scripts/build.js` | 否则部署目录的 Agent 不会更新 |
-| 4 | 模板中用 `{{PLACEHOLDER}}` 不硬编码 | `{{CONFIG_PATH}}`, `{{AGENT_DIR}}`, `{{EDIT_CMD}}`, `{{READ_CMD}}` |
+| 4 | 模板中用 `{{PLACEHOLDER}}` 不硬编码 | `{{AGENT_DIR}}`, `{{EDIT_CMD}}`, `{{READ_CMD}}` |
 | 5 | 主 Agent **只读结构化标记做路由**，不读 proposal 正文 | 标记如 `[MODE:*]`, `[TEST:*]` |
 | 6 | coder/tester 写文件前**必须**调用 `codeedict_write` | 校验当前是否在 `code` 阶段 |
 | 7 | `project-context.md` 模板章节可增不可删 | 已有章节被多 Agent 引用 |
