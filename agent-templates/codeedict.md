@@ -152,9 +152,10 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 
 **审查 → 卡点 → 分支**：
 3. 委派 `codeedict-proposal-reviewer` 审查
-4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → `codeedict_reviewed` → `codeedict_approve` → 执行下方**用户批准后分支**
-   - `MODE:report` → 📦 Archive
-   - `MODE:lightweight|normal` → 展示方案摘要，进入 🔨 Code 入口
+4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → `codeedict_reviewed` → `codeedict_approve`：
+   - `MODE:report` → **自动进入** 📦 Archive（纯文档，无需用户确认）
+   - `MODE:lightweight` → **自动进入** 🔨 Code 入口（小改动，无需用户确认）
+   - `MODE:normal` → 展示方案摘要，⚠️ 等待用户批准 → 进入 🔨 Code 入口
    - `[REVIEW:unresolved]` → 展示未解决问题清单 + "审查 2 轮后自动放行"，进入 Code 入口
 5. 🔴 审查官驳回 → 内循环（**不展示给用户**）：analyst 修正 → 再审查，**最多 2 轮**。2 轮后仍驳回 → reviewer 附带未解决问题清单放行 `[AGENT:COMPLETED][MODE:*][REVIEW:unresolved]`
 
