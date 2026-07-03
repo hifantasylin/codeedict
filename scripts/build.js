@@ -2,7 +2,7 @@
 /**
  * AI码律 Agent 构建脚本
  * 用法: node scripts/build.js [platform]
- *   platform: codebuddy | vscode | all (默认)
+ *   platform: codebuddy | vscode | cursor | all (默认)
  */
 
 const fs = require('fs');
@@ -21,6 +21,13 @@ const PLATFORM_OUTPUTS = {
     vscode: {
         dir: path.join(os.homedir(), 'AppData', 'Roaming', 'Code', 'User', 'agents', 'codeedict'),
         ext: '.agent.md',
+    },
+    cursor: {
+        skillDir: path.join(os.homedir(), '.cursor', 'skills', 'codeedict'),
+        agentsDir: path.join(os.homedir(), '.cursor', 'agents'),
+        ext: '.md',
+        mainAgent: 'codeedict',
+        mainOutput: 'SKILL.md',
     },
 };
 
@@ -48,9 +55,17 @@ function replacePlaceholders(content, placeholders) {
     return result;
 }
 
+function applyReplacements(content, replacements) {
+    if (!replacements) return content;
+    let result = content;
+    const keys = Object.keys(replacements).sort((a, b) => b.length - a.length);
+    for (const key of keys) {
+        result = result.split(key).join(replacements[key]);
+    }
+    return result;
+}
+
 function serializeFrontmatter(fields, platform) {
-    // CodeBuddy: tools as space-comma list
-    // VS Code: arrays in YAML bracket format
     const lines = ['---'];
     for (const [key, value] of Object.entries(fields)) {
         if (Array.isArray(value)) {
@@ -69,9 +84,15 @@ function serializeFrontmatter(fields, platform) {
     return lines.join('\n');
 }
 
-function buildAgent(agentName, config, platform, outputDir, ext) {
+function prepareAgentBody(agentName, config) {
     const body = loadTemplate(agentName);
-    const replacedBody = replacePlaceholders(body, config.placeholders || {});
+    let replaced = replacePlaceholders(body, config.placeholders || {});
+    replaced = applyReplacements(replaced, config.replacements);
+    return replaced;
+}
+
+function buildAgent(agentName, config, platform, outputDir, ext, outputName) {
+    const replacedBody = prepareAgentBody(agentName, config);
     const agentCfg = config.agents[agentName];
     if (!agentCfg) {
         throw new Error(`配置中未找到 agent: ${agentName}`);
@@ -79,10 +100,12 @@ function buildAgent(agentName, config, platform, outputDir, ext) {
     const frontmatter = serializeFrontmatter(agentCfg, platform);
     const output = frontmatter + '\n\n' + replacedBody;
 
-    const outPath = path.join(outputDir, `${agentName}${ext}`);
+    const fileName = outputName || `${agentName}${ext}`;
+    const outPath = path.join(outputDir, fileName);
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(outPath, output, 'utf-8');
     console.log(`  ✅ ${outPath}`);
+    return outPath;
 }
 
 function copyDir(src, dst) {
@@ -99,63 +122,81 @@ function copyDir(src, dst) {
     }
 }
 
-function cleanOldFiles(outputDir) {
-    // 清理 templates/ 中的旧文件（不在当前源码中的）
+function copyRuntimeFiles(targetDir) {
+    const checkSrc = path.join(ROOT, 'check.js');
+    const checkDst = path.join(targetDir, 'check.js');
+    fs.copyFileSync(checkSrc, checkDst);
+    console.log(`  ✅ ${checkDst}`);
+
+    const tmplSrc = path.join(ROOT, 'templates');
+    const tmplDst = path.join(targetDir, 'templates');
+    copyDir(tmplSrc, tmplDst);
+    console.log(`  ✅ ${tmplDst}/`);
+
+    const toolsSrc = path.join(ROOT, 'tools');
+    const toolsDst = path.join(targetDir, 'tools');
+    copyDir(toolsSrc, toolsDst);
+    console.log(`  ✅ ${toolsDst}/`);
+}
+
+function cleanOldTemplates(outputDir) {
     const tmplDir = path.join(outputDir, 'templates');
-    if (fs.existsSync(tmplDir)) {
-        const sourceTmplDir = path.join(ROOT, 'templates');
-        const validFiles = new Set(fs.existsSync(sourceTmplDir) ? fs.readdirSync(sourceTmplDir) : []);
-        for (const f of fs.readdirSync(tmplDir)) {
-            if (!validFiles.has(f)) {
-                fs.unlinkSync(path.join(tmplDir, f));
-                console.log(`  🗑️  清理旧模板: ${f}`);
-            }
-        }
-    }
-    // 清理根目录旧文件（不在 agent 列表中的 .md 文件）
-    const config = loadConfig(platform);
-    const agentNames = new Set(Object.keys(config.agents));
-    for (const f of fs.readdirSync(outputDir)) {
-        if (f.endsWith('.md') && !agentNames.has(f.replace(/\.md$/, '')) && f !== 'codeedict.md') {
-            // 保留主 agent
+    if (!fs.existsSync(tmplDir)) return;
+    const sourceTmplDir = path.join(ROOT, 'templates');
+    const validFiles = new Set(fs.existsSync(sourceTmplDir) ? fs.readdirSync(sourceTmplDir) : []);
+    for (const f of fs.readdirSync(tmplDir)) {
+        if (!validFiles.has(f)) {
+            fs.unlinkSync(path.join(tmplDir, f));
+            console.log(`  🗑️  清理旧模板: ${f}`);
         }
     }
 }
 
-function build(platform) {
+function buildStandard(platform) {
     const config = loadConfig(platform);
     const out = PLATFORM_OUTPUTS[platform];
     const agentNames = Object.keys(config.agents);
 
     console.log(`\n🔨 构建 ${platform} (${agentNames.length} agents) → ${out.dir}`);
 
-    // 1. 构建 agent 文件
     for (const name of agentNames) {
         buildAgent(name, config, platform, out.dir, out.ext);
     }
 
-    // 2. 拷贝 check.js
-    const checkSrc = path.join(ROOT, 'check.js');
-    const checkDst = path.join(out.dir, 'check.js');
-    fs.copyFileSync(checkSrc, checkDst);
-    console.log(`  ✅ ${checkDst}`);
-
-    // 3. 拷贝 templates/
-    const tmplSrc = path.join(ROOT, 'templates');
-    const tmplDst = path.join(out.dir, 'templates');
-    copyDir(tmplSrc, tmplDst);
-    console.log(`  ✅ ${tmplDst}/`);
-
-    // 4. 拷贝 tools/*.md
-    const toolsSrc = path.join(ROOT, 'tools');
-    const toolsDst = path.join(out.dir, 'tools');
-    copyDir(toolsSrc, toolsDst);
-    console.log(`  ✅ ${toolsDst}/`);
-
-    // 5. 清理旧残留
-    cleanOldFiles(out.dir);
+    copyRuntimeFiles(out.dir);
+    cleanOldTemplates(out.dir);
 
     console.log(`✅ ${platform} 构建完成`);
+}
+
+function buildCursor() {
+    const platform = 'cursor';
+    const config = loadConfig(platform);
+    const out = PLATFORM_OUTPUTS.cursor;
+    const agentNames = Object.keys(config.agents);
+    const subAgents = agentNames.filter(n => n !== out.mainAgent);
+
+    console.log(`\n🔨 构建 ${platform} (1 skill + ${subAgents.length} subagents)`);
+    console.log(`   skill → ${out.skillDir}`);
+    console.log(`   subagents → ${out.agentsDir}`);
+
+    buildAgent(out.mainAgent, config, platform, out.skillDir, out.ext, out.mainOutput);
+    for (const name of subAgents) {
+        buildAgent(name, config, platform, out.agentsDir, out.ext);
+    }
+
+    copyRuntimeFiles(out.skillDir);
+    cleanOldTemplates(out.skillDir);
+
+    console.log(`✅ ${platform} 构建完成`);
+}
+
+function build(platform) {
+    if (platform === 'cursor') {
+        buildCursor();
+    } else {
+        buildStandard(platform);
+    }
 }
 
 // Main
@@ -165,6 +206,7 @@ const platform = args[0] || 'all';
 if (platform === 'all') {
     build('codebuddy');
     build('vscode');
+    build('cursor');
 } else if (PLATFORM_OUTPUTS[platform]) {
     build(platform);
 } else {

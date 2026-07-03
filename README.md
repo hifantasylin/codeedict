@@ -6,7 +6,7 @@
 
 安装：告诉 AI `请安装 AI码律/Codeedict`。安装后在 AI 编辑器中选择 **Codeedict** agent 即可使用。
 
-> 支持 **CodeBuddy** / **VS Code (GitHub Copilot)** 双平台。
+> 支持 **Cursor** / **CodeBuddy** / **VS Code (GitHub Copilot)** 三平台。
 
 ```
 # 初始化项目（首次使用）

@@ -1,9 +1,9 @@
 {
   "placeholders": {
-
     "{{AGENT_DIR}}": "%APPDATA%\\Code\\User\\agents\\codeedict",
     "{{EDIT_CMD}}": "edit",
-    "{{READ_CMD}}": "read"
+    "{{READ_CMD}}": "read",
+    "{{DELEGATE_INSTRUCTIONS}}": ""
   },
   "agents": {
     "codeedict": {

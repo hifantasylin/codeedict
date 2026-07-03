@@ -1,0 +1,45 @@
+{
+  "placeholders": {
+    "{{AGENT_DIR}}": "~/.cursor/skills/codeedict",
+    "{{EDIT_CMD}}": "StrReplace / Write",
+    "{{READ_CMD}}": "Read",
+    "{{DELEGATE_INSTRUCTIONS}}": "## 子 Agent 委派\n\n使用 **Task** 工具委派 `~/.cursor/agents/` 下对应 subagent。Task 的 prompt 必须包含：\n- subagent 名称（如 `codeedict-analyst`）\n- `rootPath`（项目根绝对路径）\n- `task_id`\n- 任务性质与当前阶段说明\n\n示例 prompt：`以 codeedict-analyst subagent 执行分析，rootPath=<绝对路径>，task_id=<id>，任务性质=bugfix`"
+  },
+  "replacements": {
+    "调用方式：`mcp_call_tool`，`serverName` = `\"codeedict-gate\"`，`toolName` = 操作名，参数 schema 通过 `mcp_get_tool_description` 按需获取": "调用方式：`CallMcpTool`，`server` = `\"codeedict-gate\"`，`toolName` = 操作名，`arguments` = 参数对象（调用前先读取 MCP tool descriptor 确认 schema）",
+    "统一走 `mcp_call_tool`（`serverName`=`\"codeedict-gate\"`）": "统一走 `CallMcpTool`（`server`=`\"codeedict-gate\"`）",
+    "read_file": "Read",
+    "replace_in_file": "StrReplace",
+    "search_content": "Grep",
+    "search_file": "Glob",
+    "write_to_file": "Write",
+    "execute_command": "Shell",
+    "list_dir": "Glob"
+  },
+  "agents": {
+    "codeedict": {
+      "name": "codeedict",
+      "description": "AI码律主调度。修 bug、加功能、代码分析、需求梳理、周报。路由 Code/Analyze/Clarify 三模式，协调子 Agent，状态机硬约束。Use when user wants bugfix, feature, code analysis, requirements clarification, weekly report, or mentions Codeedict/码律."
+    },
+    "codeedict-analyst": {
+      "name": "codeedict-analyst",
+      "description": "AI码律分析师。只读分析，定位建模，产出结构化分析报告。主 Agent 在 Analyze 阶段 delegate 到此 subagent。"
+    },
+    "codeedict-coder": {
+      "name": "codeedict-coder",
+      "description": "AI码律程序员。严格按 proposal 编码，不越界。主 Agent 在 Code 阶段 delegate 到此 subagent。"
+    },
+    "codeedict-proposal-reviewer": {
+      "name": "codeedict-proposal-reviewer",
+      "description": "AI码律方案审查官。七角度对立审查方案文档。主 Agent 在 Review 阶段 delegate 到此 subagent。"
+    },
+    "codeedict-tester": {
+      "name": "codeedict-tester",
+      "description": "AI码律测试员。融入项目测试体系，增量补充测试，输出覆盖率报告。主 Agent 在 Code 阶段 coder 完成后 delegate 到此 subagent。"
+    },
+    "codeedict-code-reviewer": {
+      "name": "codeedict-code-reviewer",
+      "description": "AI码律代码审查官。对账 proposal vs 实际产出，偏离裁决。主 Agent 在 Commit 阶段 delegate 到此 subagent。"
+    }
+  }
+}

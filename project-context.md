@@ -8,7 +8,9 @@
 |------|------|
 | `node scripts/build.js codebuddy` | 构建部署到 CodeBuddy |
 | `node scripts/build.js vscode` | 构建部署到 VS Code |
+| `node scripts/build.js cursor` | 构建部署到 Cursor |
 | `node scripts/test.js` | 状态机单元测试（15 项） |
+| `node scripts/test-build.js cursor` | Cursor 构建产物验证 |
 | — | 无需 Lint / 部署命令 |
 
 ## 技术栈
@@ -31,7 +33,8 @@ codeedict/
 │   └── codeedict-proposal-reviewer.md
 ├── ide/                    ← IDE 特定配置（每个 agent 的 tools/权限/model）
 │   ├── codebuddy.json
-│   └── vscode.json
+│   ├── vscode.json
+│   └── cursor.json
 ├── scripts/                ← 构建+测试脚本
 │   ├── build.js            ← 模板→部署目录 + 占位符替换
 │   └── test.js             ← 状态机单元测试
@@ -89,6 +92,7 @@ codeedict/
 
 | 平台 | 路径 |
 |------|------|
+| Cursor | Skill：`~/.cursor/skills/codeedict/`，Subagent：`~/.cursor/agents/codeedict-*.md` |
 | CodeBuddy | `~/.codebuddy/agents/codeedict/` |
 | VS Code | `%APPDATA%\Code\User\agents\codeedict\` |
 

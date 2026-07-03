@@ -1,9 +1,9 @@
 {
   "placeholders": {
-
     "{{AGENT_DIR}}": "~/.codebuddy/agents/codeedict",
     "{{EDIT_CMD}}": "replace_in_file",
-    "{{READ_CMD}}": "read_file"
+    "{{READ_CMD}}": "read_file",
+    "{{DELEGATE_INSTRUCTIONS}}": ""
   },
   "agents": {
     "codeedict": {

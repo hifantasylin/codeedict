@@ -22,6 +22,8 @@
 | 查询状态 | `codeedict_status` |
 | 写文件前校验 | `codeedict_write` |
 
+{{DELEGATE_INSTRUCTIONS}}
+
 ## 路径解析
 
 - **全局**：直接 `~/.codeedict/<路径>`

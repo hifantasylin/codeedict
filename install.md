@@ -14,8 +14,9 @@ AI自行判断当前使用的 AI 编辑器，无需询问用户：
 
 | 编辑器 | 标识 |
 |--------|------|
+| Cursor | IDE 名称含 `Cursor` |
 | CodeBuddy | IDE 名称含 `CodeBuddy` |
-| VS Code (GitHub Copilot) | IDE 名称含 `VS Code` 或 `Code` |
+| VS Code (GitHub Copilot) | IDE 名称含 `VS Code` 或 `Code`（且不含 `Cursor`） |
 
 ### 2. 构建并安装
 
@@ -23,6 +24,7 @@ AI自行判断当前使用的 AI 编辑器，无需询问用户：
 
 | 平台 | 命令 |
 |------|------|
+| Cursor | `node scripts/build.js cursor` |
 | CodeBuddy | `node scripts/build.js codebuddy` |
 | VS Code | `node scripts/build.js vscode` |
 
@@ -30,12 +32,28 @@ AI自行判断当前使用的 AI 编辑器，无需询问用户：
 
 | 平台 | 构建目录 |
 |------|----------|
+| Cursor | Skill：`~/.cursor/skills/codeedict/`（含 `SKILL.md`、`check.js`、`templates/`、`tools/`）<br>Subagent：`~/.cursor/agents/codeedict-*.md` |
 | CodeBuddy | `~/.codebuddy/agents/codeedict/` |
 | VS Code | `%APPDATA%\Code\User\agents\codeedict\` |
 
 构建命令会自动完成：构建 agent 文件、拷贝 `check.js`、拷贝 `templates/`、拷贝 `tools/`、清理旧残留文件。
 
 ### 3. 写入 MCP 配置
+
+**Cursor**：写入 `~/.cursor/mcp.json`（如不存在则新建）：
+
+```json
+{
+  "mcpServers": {
+    "codeedict-gate": {
+      "command": "node",
+      "args": ["<build-dir>/check.js"]
+    }
+  }
+}
+```
+
+> Cursor 的 `<build-dir>` 为 `~/.cursor/skills/codeedict`（Windows：`%USERPROFILE%\.cursor\skills\codeedict`）。
 
 **CodeBuddy**：写入 `~/.codebuddy/mcp.json`（如不存在则新建）：
 
@@ -107,6 +125,14 @@ AI自行判断当前使用的 AI 编辑器，无需询问用户：
 
 ### 5. 验证并告知用户
 
-**必做：验证 MCP 服务是否正常。** 执行 `node <build-dir>/check.js --help` 或 `node <build-dir>/check.js status`，确保无报错。如果报错（如 BOM 导致的 JSON 解析失败），修复后重试。
+**必做：验证 MCP 服务是否正常。** 执行 `node <build-dir>/check.js transitions analyze`（应返回 JSON 含 `"allowed"` 字段），确保无报错。如果报错（如 BOM 导致的 JSON 解析失败），修复后重试。
 
-验证通过后告知：安装完成。CodeBuddy 用户在聊天框左下角选择 Codeedict 开始使用；VS Code 用户在 Copilot Chat 中选择 Codeedict agent。
+验证通过后告知：
+
+| 平台 | 使用方式 |
+|------|----------|
+| Cursor | 安装完成。在聊天中 `@codeedict` 或描述修 bug/加功能等需求即可触发；子 Agent 由主 Skill 通过 Task 工具委派 |
+| CodeBuddy | 安装完成。在聊天框左下角选择 Codeedict 开始使用 |
+| VS Code | 安装完成。在 Copilot Chat 中选择 Codeedict agent |
+
+Cursor 用户修改 MCP 配置后需重载窗口（Developer: Reload Window）使 MCP 生效。
