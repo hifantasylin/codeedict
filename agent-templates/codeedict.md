@@ -47,7 +47,7 @@
 
 | 关键词 | 路由 | 说明 |
 |--------|------|------|
-| 修/改/加/bug/fix/crash/不工作/实现/开发/新增/feat/优化/重构 | Analyze 入口 → Code 入口 | 需求明确 |
+| 修/改/加/bug/fix/crash/不工作/实现/实施/开发/新增/feat/优化/重构 | Analyze 入口 → Code 入口 | 需求明确 |
 | 开始阶段/继续阶段/阶段\d/下一阶段/续跑 | Code 入口（多阶段续跑） | 检测 proposal 已 approved → 直接编 |
 | 分析/排查/看流程/定位/调研 | Analyze 入口 | 只读分析 |
 | 梳理/整理思路/有个想法/不太成熟/讨论 | Clarify 入口 | 需求模糊 |
@@ -58,7 +58,7 @@
 | 意图模糊 | 追问 | "想修Bug/做功能，还是只分析了解？" |
 
 > Code 入口：若有明确 task ID 且 proposal 已 approved → 直接 Code 入口，否则走 Analyze 入口。
-> 多阶段续跑：用户说"开始阶段2/下一阶段"等 → 读 proposal 确认当前阶段存在 → 直接 Code 入口，不经过 Analyze/Review。
+> 多阶段续跑：用户说"开始阶段2/下一阶段"等 → 读 proposal 确认当前阶段存在 → 直接 Code 入口。
 
 ## 子 Agent 完成汇报协议
 
@@ -155,7 +155,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 **审查 → 卡点 → 分支**：
 3. 委派 `codeedict-proposal-reviewer` 审查
 4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → `codeedict_reviewed` → `codeedict_approve`：
-   - `MODE:report` → **自动进入** 📦 Archive（纯文档，无需用户确认）
+   - `MODE:report` → 📦 Archive，自动结束。此后用户说"实施"→直接 🔨 Code 入口
    - `MODE:lightweight` → **自动进入** 🔨 Code 入口（小改动，无需用户确认）
    - `MODE:normal` → 展示方案摘要，⚠️ 等待用户批准 → 进入 🔨 Code 入口
    - `[REVIEW:unresolved]` → 展示未解决问题清单 + "审查 2 轮后自动放行"，进入 Code 入口
@@ -174,7 +174,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 **两种进入方式**：
 
 1. **从 Analyze→Review→approved 进入**（新任务首次编码）
-2. **多阶段续跑进入**（已有 approved proposal，跳过 Analyze/Review 直接编后续阶段）
+2. **多阶段续跑/报告后实施进入**（proposal 已 approved，或分析报告已完成）
 
 > 两种路径在此合并，后续流程相同。
 
@@ -185,7 +185,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
    | 进入方式 | 判断依据 | 路由 |
    |---------|---------|------|
    | 从 Analyze→Review→approved | 读 proposal-reviewer 完成标记 `[MODE:*]` | 按 MODE 路由 |
-   | 多阶段续跑 | proposal 已有且已 approved | 默认 `MODE:normal`，委派 coder |
+   | 其他 | proposal 已 approved 或分析报告已出 | 默认 `MODE:normal`，委派 coder |
 
    | 标记 | 路由 | 谁编码 | 谁编译验证 |
    |------|------|--------|-----------|
@@ -205,9 +205,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
    - 返回 `[AGENT:REJECTED:deviation]` → **内循环**：切回 `code` → 委派 coder 修正（传入审查结论，偏离修正**不走 lightweight**，必须经过 coder+tester）→ coder 返回 `[BUILD:passed]` → 委派 tester → tester 通过 → 切回 `commit` → 重新委派 reviewer → 重复直到通过，同一偏离点 3 次后仍驳回 → reviewer 自动裁决：接受偏离（标注原因）或回滚本次改动
    - 返回 `[AGENT:REJECTED:TIMEOUT]` → 告知用户，保持当前阶段
 
-7. commit 完成后，判断任务是否含多阶段：
-   - **多阶段任务**（proposal 中明确列出多个编码阶段）：告知用户当前阶段完成，询问"继续下一阶段还是归档封存？"
-   - **单阶段任务**：自动进入 📦 Archive
+7. commit 完成后，自动进入 📦 Archive
 
 ### 🛡️ review 入口
 
@@ -224,42 +222,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
    b. **反模式提取**（仅 bugfix）：从 proposal 提取错误模式追加到反模式表
    c. **依赖图增量**：重扫变更文件的 import → diff 追加/移除边，不重扫全项目
 4. **指标记录**：在 `~/.codeedict/metrics.md` 追加一行
-5. **项目健康评分**：
-
-   读 project-context.md 当前内容 + 本次变更代码，评估三维健康度：
-
-   | 维度 | 权重 | AI 评分依据 |
-   |------|:---:|------------|
-   | 可维护性 | 40% | 依赖关系图中的耦合度、反模式表中的错误数量、命名规则遵循度 |
-   | 正确性 | 40% | 测试体系完备度、测试文件数量和趋势、异常处理惯例 |
-   | 安全合规 | 20% | 设计约束遵循度、常见安全模式是否已内建 |
-
-   评分模型（示例扣分制）：
-   - 满分 100
-   - 违反 MNT/COR/SEC 清单一处 -10
-   - 严重违规（如 SQL 注入）一项 -25
-   - 底线分 0，不倒扣
-
-   写入 project-context.md 顶部：
-
-   ```
-   # 项目架构地图 — <projectId>
-   > 自动扫描生成于 <日期>。记录项目特有的架构惯例，供分析师写方案、审查官对账时参考。
-
-   ## 项目健康评分
-   > 最后更新：<日期>｜来源任务：<taskId>
-
-   | 维度 | 分数 | 趋势 |
-   |------|:---:|:---:|
-   | 可维护性 (40%) | <分数> | <↑↓—> |
-   | 正确性 (40%)   | <分数> | <↑↓—> |
-   | 安全合规 (20%) | <分数> | <↑↓—> |
-   | **综合** | **<加权>** | **<↑↓—>** |
-
-   **趋势标记**：↑ 上升 ↓ 下降 — 持平 / 首次基线
-   ```
-
-   首次 Archive 生成的分数即为**基线**，后续 Archive 更新时与上次分数对比，标记趋势箭头。
+5. **项目健康评分**：按 `templates/health-score.md` 评分并写入 `project-context.md`
 
 ### 📊 Weekly
 
