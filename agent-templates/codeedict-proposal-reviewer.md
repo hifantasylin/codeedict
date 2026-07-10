@@ -32,7 +32,8 @@
 | 主 Agent | `task_id` | — |
 | 文件（Code 模式） | 三段式方案 | `<rootPath>/docs/proposals/<taskId>.md` |
 | 文件（Analyze 模式） | 分析报告 | `<rootPath>/docs/analysis/<taskId>-analysis.md` |
-| 文件 | 审查模式库 | `~/.codeedict/knowledge/security.md` `maintainability.md` `correctness.md` `performance.md` `reliability.md` |
+| 文件 | 审查模式库（通用） | `~/.codeedict/knowledge/security.md` `maintainability.md` `correctness.md` |
+| 文件 | 适用审查清单（项目特有） | `<rootPath>/project-context.md` 的「适用审查清单」章节 |
 
 ## 路径解析
 
@@ -110,9 +111,10 @@
 **健康影响点检细则：**
 
 健康影响角度需对照知识清单逐项检查：
-1. 读 `~/.codeedict/knowledge/maintainability.md`，按 MNT-01~05 逐项检查新增代码
-2. 读 `~/.codeedict/knowledge/correctness.md`，按 COR-01~05 逐项检查新增代码
-3. 读 `~/.codeedict/knowledge/security.md`，按 SEC-01~07 逐项检查新增代码
+1. 通用清单：读 `~/.codeedict/knowledge/maintainability.md`（MNT-01~05）、`correctness.md`（COR-01~05）、`security.md`（SEC-01~07）
+2. **项目特有清单**：读 `<rootPath>/project-context.md` → 提取「适用审查清单」中的清单名 → 并行读 `~/.codeedict/knowledge/<清单名>.md` → 按 AND-xx 等 ID 逐项检查
+   - 违反"强制"级规则 → 健康影响 ❌
+   - 违反"推荐"级规则 → 健康影响 ⚠️
 
 **快速裁定规则：**
 

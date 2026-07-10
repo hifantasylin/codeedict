@@ -106,8 +106,22 @@
    - 用 `search_content` 扫描全项目 `^\s*import.*from|require\(|#include`，汇总为双向边表
    - 搜索项目代码中重复出现的命名/分层/继承模式
    - **探测测试体系**：扫描测试框架配置 + 测试目录 + 测试文件模式 + 测试命令 → 写入「测试体系」章节
+   - **探测适用审查清单**：扫描语言/框架标志文件，写入「适用审查清单」章节：
+
+     | 标志文件 | 清单名 |
+     |---------|--------|
+     | `build.gradle` / `build.gradle.kts` / `AndroidManifest.xml` | `android` |
+     | `Package.swift` / `*.xcodeproj` | `ios` (预留) |
+     | `Cargo.toml` | `rust` (预留) |
+     | `go.mod` | `go` (预留) |
+
+     写入格式：
+     ```
+     | android | build.gradle | 强制 |
+     ```
+
    - 按 `templates/project-context.md` 模板写入 `<rootPath>/project-context.md`
-   - 自动写入，仅告知用户生成摘要（章节数 + 依赖边数 + 反模式数 + 测试体系）
+   - 自动写入，仅告知用户生成摘要（章节数 + 依赖边数 + 反模式数 + 测试体系 + 适用清单数）
 6. **新项目判定**：扫描后若各章节全空（或仅 1-2 条）→ 判定为新项目 → 进入 AI 诊断式对话（见下方"新项目引导"）
 
 ### 🔄 规范刷新
