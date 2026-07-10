@@ -235,10 +235,15 @@ function cmdCheckEntry(taskId, newStage) {
     if (newStage === Stage.Code) {
         const projectId = _projectIdFromTask(taskId);
         const root = _getRootPath(projectId);
+        // Code 入口：优先查 proposal，若无则查 analysis 报告（MODE:report 后直接实施场景）
         const proposalPath = root ? path.join(root, 'docs', 'proposals', `${taskId}.md`) : null;
-        if (!proposalPath || !fs.existsSync(proposalPath)) return _block(`缺少方案文件: ${proposalPath}\nCode 模式需要先完成 Review 阶段生成方案文档`);
+        const analysisPath = root ? path.join(root, 'docs', 'analysis', `${taskId}.md`) : null;
+        const hasProposal = proposalPath && fs.existsSync(proposalPath);
+        const hasAnalysis  = analysisPath && fs.existsSync(analysisPath);
+        if (!hasProposal && !hasAnalysis) return _block(`缺少方案文件。请确保 docs/proposals/${taskId}.md 或 docs/analysis/${taskId}.md 存在`);
         const cps = state.checkpoints || {};
-        if (!cps.review_approved) return _block(`Review 硬卡点尚未批准，请先 approve ${taskId} review`);
+        // review_approved 不是必须的：MODE:report 任务无 review 批准，但已有分析报告即可进入 Code
+        if (hasProposal && !cps.review_approved) return _block(`Review 硬卡点尚未批准，请先 approve ${taskId} review`);
     }
     return _ok({ task_id: taskId, new_stage: newStage, message: '允许进入' });
 }
@@ -285,7 +290,7 @@ const MCP_TOOLS = [
     },
     {
         name: 'codeedict_check_entry',
-        description: '进入阶段守卫检查：Code 入口需 proposal 存在 + review 审批通过。',
+        description: '进入阶段守卫检查：Code 入口需 proposal 或 analysis 报告存在。',
         inputSchema: { type: 'object', properties: { task_id: { type: 'string' }, new_stage: { type: 'string' } }, required: ['task_id', 'new_stage'] },
     },
     {
