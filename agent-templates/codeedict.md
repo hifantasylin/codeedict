@@ -33,13 +33,15 @@
 | 路径 | 用途 |
 |------|------|
 | `<rootPath>/project-context.md` | 架构地图 + 工具链 |
-| `<rootPath>/docs/proposals/<taskId>.md` | 方案文档 |
-| `<rootPath>/docs/analysis/<taskId>-analysis.md` | 分析报告 |
-| `<rootPath>/docs/requirements/<taskId>-req.md` | 需求澄清 |
+| `<rootPath>/docs/proposals/<YYYYMMDD>-<中文标题>-<taskId>.md` | 方案文档 |
+| `<rootPath>/docs/analysis/<YYYYMMDD>-<中文标题>-<taskId>-analysis.md` | 分析报告 |
+| `<rootPath>/docs/requirements/<YYYYMMDD>-<中文标题>-<taskId>-req.md` | 需求澄清 |
 | `<rootPath>/docs/archive.md` | 归档索引 |
-| `<rootPath>/.codeedict/tasks/<taskId>-tasks.md` | 编码拆解 |
+| `<rootPath>/.codeedict/tasks/<YYYYMMDD>-<中文标题>-<taskId>-tasks.md` | 编码拆解 |
 | `<rootPath>/.codeedict/task-tracker.md` | 活跃任务 |
 | `<rootPath>/.codeedict/pending-issues.md` | 待处理问题 |
+
+> **文件命名规则**：`<YYYYMMDD>-<中文标题>-<taskId>[后缀].md`。中文标题由 analyst 从用户描述中提取核心名词短语（≤15 字），taskId 保持 `projectId-类别序号-功能标识` 格式不变。如 `20260804-统一记忆入口-proactive-P2-memory-entry-unify.md`。
 
 ## 路由表
 
@@ -148,7 +150,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 1. 调用 `codeedict_init`（`initial_stage` = `clarify`，`project_id` = `<projectId>`），宣布 `💡 进入需求澄清阶段`
    - 若返回 `blocked: project_not_initialized` → 先执行 🏗️ 项目初始化（静默），完成后重试 `codeedict_init`
 2. 以"需求梳理者"人格逐轮追问（3–5 轮），覆盖：做什么、谁用、场景、边界、技术约束
-3. 需求确认 → 写入 `<rootPath>/docs/requirements/<taskId>-req.md`
+3. 需求确认 → 写入 `<rootPath>/docs/requirements/<YYYYMMDD>-<title>-<taskId>-req.md`
 4. 调用 `codeedict_stage` 切换到 `analyze`，宣布 `🔍 转入分析阶段`
 5. 继续执行 🔍 Analyze 入口的 **"从 Clarify 转入"** 路径
 
@@ -163,11 +165,11 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 3. analyst 通过 `[AGENT:COMPLETED]` 汇报 → 主 Agent 切换至 `review`
 
 **从 Clarify 转入**（需求已确认，当前阶段 = `analyze`）：
-1. 告知分析师读取 `<rootPath>/docs/requirements/<taskId>-req.md`
+1. 告知分析师读取 `<rootPath>/docs/requirements/<YYYYMMDD>-<title>-<taskId>-req.md`
 2. 委派 `codeedict-analyst`，产出同上
 
 **审查 → 卡点 → 分支**：
-3. 委派 `codeedict-proposal-reviewer` 审查
+3. 委派 `codeedict-proposal-reviewer` 审查（传入 `proposal_path`，即 analyst 返回的完整文件名）
 4. 🟢 返回 `[AGENT:COMPLETED][MODE:*]` → `codeedict_reviewed` → `codeedict_approve`：
    - `MODE:report` → 📦 Archive，自动结束。此后用户说"实施"→直接 🔨 Code 入口
    - `MODE:lightweight` → **自动进入** 🔨 Code 入口（小改动，无需用户确认）
@@ -210,16 +212,14 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 
 4. 编码完成后：
    - **lightweight**：主 Agent 编码完毕 → 执行编译验证 → 直接进入步骤 5（委派 tester）
-   - **normal**：coder 返回 `[AGENT:COMPLETED][BUILD:passed]` → 委派 `codeedict-tester`（传入修改的文件列表）
+   - **normal**：coder 返回 `[AGENT:COMPLETED][BUILD:passed][STAGES:N]` → 委派 `codeedict-tester`（传入修改的文件列表）。`STAGES:N` 表示 coder 已完成 N 个阶段的编码（内循环自动串行，不中断用户）
 5. tester 返回：
    - `[AGENT:COMPLETED][TEST:*]` → 调用 `codeedict_stage` 切到 `commit`，宣布 `✅ 进入提交确认阶段`
    - `[AGENT:REJECTED:test-failure]` → **内循环**：保持 `code` → 重新委派 coder（传入测试失败详情）→ coder 修正 → 重新委派 tester → 重复直到通过，同一失败点 3 次后仍然失败 → 告知用户
-6. 委派 `codeedict-code-reviewer`：
-   - 返回 `[AGENT:COMPLETED]` → **展示审查结论 + commit message → ⚠️ 必须等待用户确认 → 用户确认后**主 Agent 执行 `git commit`（**禁止 git push，除非用户明确指令**）
+6. 委派 `codeedict-code-reviewer`（传入 `proposal_path` 和 `tasks_path`）：
+   - 返回 `[AGENT:COMPLETED]` → **展示审查结论 + commit message → ⚠️ 必须等待用户确认**。用户可能需要真机验证、手动测试等，不要催促。用户确认后 → **执行 📦 Archive**（archive 末尾自动执行 git commit，不产生两笔 commit）
    - 返回 `[AGENT:REJECTED:deviation]` → **内循环**：切回 `code` → 委派 coder 修正（传入审查结论，偏离修正**不走 lightweight**，必须经过 coder+tester）→ coder 返回 `[BUILD:passed]` → 委派 tester → tester 通过 → 切回 `commit` → 重新委派 reviewer → 重复直到通过，同一偏离点 3 次后仍驳回 → reviewer 自动裁决：接受偏离（标注原因）或回滚本次改动
    - 返回 `[AGENT:REJECTED:TIMEOUT]` → 告知用户，保持当前阶段
-
-7. commit 完成后，自动进入 📦 Archive
 
 ### 🛡️ review 入口
 
@@ -227,7 +227,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 
 ### 📦 Archive
 
-统一归档流程，**全程自动执行，不等待用户确认**。调用 `codeedict_stage` 切到 `archive`，宣布 `📦 进入归档封存阶段`：
+统一归档流程。调用 `codeedict_stage` 切到 `archive`，宣布 `📦 进入归档封存阶段`：
 
 1. **登记索引**：在 `<rootPath>/docs/archive.md` 追加索引行
 2. **待处理回顾**（仅代码修改后）：读 `<rootPath>/.codeedict/pending-issues.md` 输出摘要
@@ -237,6 +237,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
    c. **依赖图增量**：重扫变更文件的 import → diff 追加/移除边，不重扫全项目
 4. **指标记录**：在 `~/.codeedict/metrics.md` 追加一行
 5. **项目健康评分**：按 `templates/health-score.md` 评分并写入 `project-context.md`
+6. **git commit**：`git add -A && git commit -m "<code-reviewer 产出的 commit message>"`（**禁止 git push，除非用户明确指令**）。Archive 产生的文件变更（archive.md、project-context.md、metrics.md 等）也被包含在同一笔 commit 中
 
 ### 📊 Weekly
 

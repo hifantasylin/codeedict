@@ -22,8 +22,8 @@
 
 ## 路径解析
 
-主 Agent 传入 `rootPath`（项目根绝对路径）和 `task_id`。路径拼接：
-- 项目内：`<rootPath>/project-context.md`（读测试体系）、`<rootPath>/docs/proposals/<taskId>.md`
+主 Agent 传入 `rootPath`（项目根绝对路径）、`task_id` 和 `proposal_path`（proposal 完整文件名）。路径拼接：
+- 项目内：`<rootPath>/project-context.md`（读测试体系）、`<rootPath>/docs/proposals/<proposal_path>`
 - 全局：`~/.codeedict/<路径>`
 
 ## 输入

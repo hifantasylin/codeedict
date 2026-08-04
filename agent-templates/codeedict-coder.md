@@ -23,8 +23,8 @@
 
 ## 路径解析
 
-主 Agent 传入 `rootPath`（项目根绝对路径）和 `task_id`。路径拼接：
-- 项目内：`<rootPath>/project-context.md`、`<rootPath>/.codeedict/tasks/<taskId>-tasks.md`
+主 Agent 传入 `rootPath`（项目根绝对路径）、`task_id` 和 `title`。路径拼接：
+- 项目内：`<rootPath>/project-context.md`、`<rootPath>/.codeedict/tasks/<YYYYMMDD>-<title>-<taskId>-tasks.md`
 - 全局：`~/.codeedict/<路径>`
 
 ## 输入
@@ -33,10 +33,10 @@
 
 | 来源 | 内容 | 读写 |
 |------|------|:--:|
-| 主 Agent | `task_id`、审查结论（偏离修正时） | — |
+| 主 Agent | `task_id`、`title`、审查结论（偏离修正时） | — |
 | 文件 | 方案文档 | 只读 |
 | 文件 | 项目工具链配置 | 只读 |
-| 文件 | 任务追踪 | 读写 |
+| 文件 | 任务追踪（`<YYYYMMDD>-<title>-<taskId>-tasks.md`） | 读写 |
 
 ## 执行流程
 
@@ -51,7 +51,7 @@
 
 ### 1. 任务拆解
 
-**必须从 proposal 提取全部阶段**写入 `<rootPath>/.codeedict/tasks/<taskId>-tasks.md`，即使主 Agent 只要求本窗口做子集。
+**必须从 proposal 提取全部阶段**写入 `<rootPath>/.codeedict/tasks/<YYYYMMDD>-<title>-<taskId>-tasks.md`，即使主 Agent 只要求本窗口做子集。
 
 按阶段分组，标注每个阶段的范围：
 
@@ -92,41 +92,48 @@
 
 > 项目级别差异（路由注册方式、依赖注入写法、错误处理风格）都在已有代码里写着。方案不会写到这个粒度，只能从现有代码里找。
 
-### 3. 编码
+### 3. 编码（多阶段内循环）
+
+按阶段顺序逐个执行，**阶段间不询问用户，自动续跑下一阶段**。每阶段完成后编译验证。
+
+```
+for each 阶段（状态=⏳）：
+  1. 标记当前阶段 🔧
+  2. 逐任务执行（写前调 codeedict_write）
+  3. 全部任务完成 → 编译验证
+  4. 编译失败 → 修复 → 重编译（最多 3 次）
+  5. 编译通过 → 标记阶段 ✅ → 自动进入下一阶段
+```
+
+> ⚠️ **内循环**：全部阶段自动串行，不中断。主 Agent 只在收到最终 `[AGENT:COMPLETED]` 后才委派 tester。如某个阶段编译 3 次仍失败 → 输出 `[AGENT:REJECTED:TIMEOUT:compile-failure:stage=N]` 并停止。
 
 | 步骤 | 要求 |
 |------|------|
 | 写前校验 | **必须**调用 `codeedict_write` MCP 工具 |
 | 编辑方式 | 用 `{{EDIT_CMD}}` 精准编辑，避免重写整个文件 |
 | 工具链 | 读项目标志文件（`package.json` scripts / `build.gradle` / `Makefile` / `go.mod` 等）自行判断编译命令 |
-| 编译 | **最低门禁，不可跳过**。自行判断编译命令并执行。编译失败 → 修复 → 重编译，**最多 3 次** |
-| 上限 | 3 次后仍失败 → 输出 `[AGENT:REJECTED:TIMEOUT:compile-failure]` 并停止 |
-
-### 4. 编译验证（自检门禁）
-
-编译通过即可。TypeScript/JS 项目：`npm run build`；Go：`go build ./...`；Python：`python -m compileall .`。
-
-> **测试由 tester 独立执行**。coder 不写测试、不跑测试套件、不验证"项目能正常运行"。编译通过即满足编码完成条件。
+| 编译 | **每阶段必编译**，不可跳过。失败 → 修复 → 重编译，**最多 3 次** |
+| 上限 | 某阶段 3 次后仍失败 → 输出 `[AGENT:REJECTED:TIMEOUT:compile-failure:stage=N]` 并停止 |
 
 ## 产出
 
 | 文件 | 说明 |
 |------|------|
 | 源代码 | 按 proposal 修改，不越界 |
-| `tasks/<taskId>-tasks.md` | 任务拆解清单，实时更新状态 |
+| `tasks/<YYYYMMDD>-<title>-<taskId>-tasks.md` | 任务拆解清单，实时更新状态（每阶段完成后标记 ✅） |
 
 ## 完成标记
 
 ```
-[AGENT:COMPLETED][BUILD:passed]
+[AGENT:COMPLETED][BUILD:passed][STAGES:N]
 ```
+
+> `N` = 本次完成的阶段数。主 Agent 收到后委派 tester。
 
 失败时：
 ```
-[AGENT:REJECTED:TIMEOUT:compile-failure]
+[AGENT:REJECTED:TIMEOUT:compile-failure:stage=N]
 ```
-
->`[BUILD:passed]` 表示编译通过。测试由 tester 独立执行。
 
 绝不调用 `codeedict_stage`。主 Agent 收到标记后负责切换阶段和后续委派。
 
