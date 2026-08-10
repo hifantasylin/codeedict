@@ -87,13 +87,16 @@
 ## 测试体系
 
 > 项目初始化时自动探测，tester 直接读取无需重复扫描。Archived 阶段增量更新。
+> **增量命令是 tester 回归首选**（快速）；只有接口签名变更、跨 crate 改动、或用户明确要求时才跑全量命令。
 
 | 项 | 值 |
 |----|-----|
 | 测试框架 | <jest / vitest / pytest / go test / 等> |
-| 测试命令 | <npm test / pytest / go test ./... / 等> |
+| 增量测试命令 | <只测本次改动涉及的模块/包，秒级返回，如 `cargo test -p core --lib`、`pytest tests/test_<x>.py`> |
+| 全量测试命令 | <全量回归，较慢，如 `cargo test --workspace`、`pytest`> |
 | 测试目录 | <__tests__/、tests/、spec/ 等> |
 | 文件模式 | <*.test.ts、*_test.py、*Test.java 等> |
+| 已知失败目标 | <可选，有则填，如 `cargo test --workspace` 中已知失败的测试目标/用例，避免 tester 误判为回归> |
 | 示例文件 | <指向一个已有测试文件路径> |
 
 ## 边界标记

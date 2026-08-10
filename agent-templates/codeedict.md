@@ -214,7 +214,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 
 4. 编码完成后：
    - **lightweight**：主 Agent 编码完毕 → 执行编译验证 → 直接进入步骤 5（委派 tester）
-   - **normal**：coder 返回 `[AGENT:COMPLETED][BUILD:passed][STAGES:N]` → 委派 `codeedict-tester`（传入修改的文件列表）。`STAGES:N` 表示 coder 已完成 N 个阶段的编码（内循环自动串行，不中断用户）
+   - **normal**：coder 返回 `[AGENT:COMPLETED][BUILD:passed][STAGES:N]` → 委派 `codeedict-tester`（传入修改的文件列表 + 从 `project-context.md`「测试体系」读取的**增量测试命令**）。`STAGES:N` 表示 coder 已完成 N 个阶段的编码（内循环自动串行，不中断用户）。除非明确全量回归，否则**只传增量测试命令**，让 tester 秒级回归，不触发全量（全量慢且可能含已知失败目标）
 5. tester 返回：
    - `[AGENT:COMPLETED][TEST:*]` → 调用 `codeedict_stage` 切到 `commit`，宣布 `✅ 进入提交确认阶段`
    - `[AGENT:REJECTED:test-failure]` → **内循环**：保持 `code` → 重新委派 coder（传入测试失败详情）→ coder 修正 → 重新委派 tester → 重复直到通过，同一失败点 3 次后仍然失败 → 告知用户

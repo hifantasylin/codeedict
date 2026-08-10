@@ -64,16 +64,23 @@
 
 ### 2. 运行已有测试
 
-先跑项目已有测试，建立基线：
+先读 `project-context.md`「测试体系」章节的**增量测试命令**与**全量测试命令**。
+
+**增量优先（默认）**：用「增量测试命令」跑，只覆盖本次变更涉及的模块/包，秒级返回。
 
 ```bash
-# 从项目标志文件自行判断测试命令，例如：
-npm test          # Node.js
-pytest            # Python
-go test ./...     # Go
-cargo test        # Rust
+# 例：project-context.md「增量测试命令」= cargo test -p core --lib
+cargo test -p core --lib
 ```
 
+**何时改用全量命令**：仅当步骤 1 判定为「全量回归」（涉及接口/导出签名变更、新增模块、删除公共 API）时，才跑「全量测试命令」。
+
+```bash
+# 例：project-context.md「全量测试命令」= cargo test --workspace
+cargo test --workspace
+```
+
+- **全量命令包含已知失败目标**（见「已知失败目标」字段）→ 运行前先排除，或在报告中标注"该失败为已知问题，非本次变更引入"，不因此误判为回归
 - 全通过 → 基线干净，继续
 - 有失败 → 分析是否为 coder 变更引入，分情况处理
 - 无测试命令 → 跳过，标记 `[AGENT:COMPLETED][TEST:incremental-passed]`（仅当变更无需测试时）或进入步骤 3 创建首个测试

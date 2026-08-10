@@ -103,12 +103,29 @@ function _projectIdFromTask(taskId) {
     return taskId.split('-')[0];
 }
 
+// 查找方案/分析文档：优先精确 `${taskId}${suffix}`，其次后缀匹配 `*-${taskId}${suffix}`
+// 兼容两种命名：
+//   旧版：docs/proposals/<taskId>.md
+//   新版：docs/proposals/<YYYYMMDD>-<中文标题>-<taskId>.md
+function _findDocFile(root, subdir, taskId, suffix = '.md') {
+    if (!root) return null;
+    const dir = path.join(root, 'docs', subdir);
+    const exact = path.join(dir, `${taskId}${suffix}`);
+    if (fs.existsSync(exact)) return exact;
+    try {
+        for (const f of fs.readdirSync(dir)) {
+            if (f.endsWith(`${taskId}${suffix}`)) return path.join(dir, f);
+        }
+    } catch (e) { /* docs/<subdir> 目录不存在 */ }
+    return null;
+}
+
 function _readProposal(taskId) {
     const projectId = _projectIdFromTask(taskId);
     const root = _getRootPath(projectId);
     if (!root) return null;
-    const proposalPath = path.join(root, 'docs', 'proposals', `${taskId}.md`);
-    if (fs.existsSync(proposalPath)) return fs.readFileSync(proposalPath, 'utf-8');
+    const proposalPath = _findDocFile(root, 'proposals', taskId);
+    if (proposalPath) return fs.readFileSync(proposalPath, 'utf-8');
     return null;
 }
 
@@ -236,11 +253,11 @@ function cmdCheckEntry(taskId, newStage) {
         const projectId = _projectIdFromTask(taskId);
         const root = _getRootPath(projectId);
         // Code 入口：优先查 proposal，若无则查 analysis 报告（MODE:report 后直接实施场景）
-        const proposalPath = root ? path.join(root, 'docs', 'proposals', `${taskId}.md`) : null;
-        const analysisPath = root ? path.join(root, 'docs', 'analysis', `${taskId}.md`) : null;
-        const hasProposal = proposalPath && fs.existsSync(proposalPath);
-        const hasAnalysis  = analysisPath && fs.existsSync(analysisPath);
-        if (!hasProposal && !hasAnalysis) return _block(`缺少方案文件。请确保 docs/proposals/${taskId}.md 或 docs/analysis/${taskId}.md 存在`);
+        const proposalPath = _findDocFile(root, 'proposals', taskId);
+        const analysisPath = _findDocFile(root, 'analysis', taskId);
+        const hasProposal = !!proposalPath;
+        const hasAnalysis  = !!analysisPath;
+        if (!hasProposal && !hasAnalysis) return _block(`缺少方案文件。请确保 docs/proposals/...${taskId}.md 或 docs/analysis/...${taskId}.md 存在`);
         const cps = state.checkpoints || {};
         // review_approved 不是必须的：MODE:report 任务无 review 批准，但已有分析报告即可进入 Code
         if (hasProposal && !cps.review_approved) return _block(`Review 硬卡点尚未批准，请先 approve ${taskId} review`);
