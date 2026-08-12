@@ -112,21 +112,25 @@
    - 用 `search_content` 扫描全项目 `^\s*import.*from|require\(|#include`，汇总为双向边表
    - 搜索项目代码中重复出现的命名/分层/继承模式
    - **探测测试体系**：扫描测试框架配置 + 测试目录 + 测试文件模式 + 测试命令 → 写入「测试体系」章节
-   - **探测适用审查清单**：**基础清单（correctness / maintainability / reliability / security / performance）默认始终写入「适用审查清单」**；再按语言/框架标志文件追加对应清单：
+   - **探测适用审查清单**：**基础清单（correctness / maintainability / reliability / security / performance）默认始终写入「适用审查清单」**；**`general-dev`（通用开发总纲，跨语言）也默认始终写入**；再按语言/框架标志文件追加对应清单：
 
-     | 标志文件 | 清单名 |
-     |---------|--------|
-     | `build.gradle` / `build.gradle.kts` / `AndroidManifest.xml` | `android` |
-     | `Package.swift` / `*.xcodeproj` | `ios` (预留) |
-     | `Cargo.toml` | `rust` (预留) |
-     | `go.mod` | `go` (预留) |
+     | 标志文件 | 清单名 | 类型 |
+     |---------|--------|:---:|
+     | `build.gradle` / `build.gradle.kts` / `AndroidManifest.xml` | `android` | 审查清单 |
+     | `Cargo.toml` | `rust-dev` | 开发总纲 |
+     | `Package.swift` / `*.xcodeproj` | `ios` (预留) | — |
+     | `go.mod` | `go` (预留) | — |
 
      写入格式：
      ```
      | correctness | (默认) | 强制 |
      | maintainability | (默认) | 强制 |
+     | general-dev | (默认) | 强制 |
+     | rust-dev | Cargo.toml | 强制 |
      | android | build.gradle | 强制 |
      ```
+
+     > 开发总纲（`general-dev` / `rust-dev`）与审查清单共用「适用审查清单」表驱动机制：coder 第 0 步读表 → 读 `~/.codeedict/knowledge/<清单名>.md` 遵守所有"强制"级规则；reviewer 对账时同样读表逐条核对。项目级专属规范由维护者手写进「设计约束」章节（不自动注入）。
 
    - 按 `templates/project-context.md` 模板写入 `<rootPath>/project-context.md`
    - **生成模块开发引导**：对扫描到的每个模块（如 Gradle module / Maven module / src 顶层目录），按 `templates/module-guide.md` 模板写入 `<模块目录>/MODULE.md`。内容从已生成的 project-context 按模块切片：依赖铁律（从依赖关系图反推）、已知雷区（从反模式表按模块归组）、波及影响（从依赖边表）、边界标记（按模块过滤）。同时在 project-context 的「模块引导索引」章节登记每个模块。**注意**：仅对"有明确边界、独立依赖"的模块生成，单文件/无依赖模块可跳过
