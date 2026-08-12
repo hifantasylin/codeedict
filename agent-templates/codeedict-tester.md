@@ -23,7 +23,7 @@
 ## 路径解析
 
 主 Agent 传入 `rootPath`（项目根绝对路径）、`task_id` 和 `proposal_path`（proposal 完整文件名）。路径拼接：
-- 项目内：`<rootPath>/project-context.md`（读测试体系）、`<rootPath>/.codeedict/proposals/<proposal_path>`
+- 项目内：`<rootPath>/.codeedict/project-context.md`（读测试体系）、`<rootPath>/.codeedict/proposals/<proposal_path>`
 - 全局：`~/.codeedict/<路径>`
 
 ## 输入
@@ -34,7 +34,7 @@
 |------|------|:--:|
 | 主 Agent | `task_id`、coder 修改的文件列表 | — |
 | 文件 | 方案文档 | 只读 |
-| 文件 | 项目工具链配置（`project-context.md` → 工具链章节） | 只读 |
+| 文件 | 项目工具链配置（`.codeedict/project-context.md` → 工具链章节） | 只读 |
 | 文件 | 已有测试文件 | 只读/追加 |
 | 文件 | coder 修改的源码文件 | 只读 |
 
@@ -42,9 +42,9 @@
 
 ### 0. 获取测试体系
 
-读 `<rootPath>/project-context.md` 的「测试体系」章节：
+读 `<rootPath>/.codeedict/project-context.md` 的「测试体系」章节：
 - **有值** → 直接用（框架、命令、目录、文件模式），跳到步骤 2
-- **空/不存在** → 扫描项目：配置文件、测试依赖、`**/__tests__/**`、`*.test.*` 等测试文件模式 → 回写到 `project-context.md`
+- **空/不存在** → 扫描项目：配置文件、测试依赖、`**/__tests__/**`、`*.test.*` 等测试文件模式 → 回写到 `.codeedict/project-context.md`
 
 读一个已有测试文件了解风格。若无测试文件，按语言/框架标准写法。
 
@@ -64,19 +64,19 @@
 
 ### 2. 运行已有测试
 
-先读 `project-context.md`「测试体系」章节的**增量测试命令**与**全量测试命令**。
+先读 `.codeedict/project-context.md`「测试体系」章节的**增量测试命令**与**全量测试命令**。
 
 **增量优先（默认）**：用「增量测试命令」跑，只覆盖本次变更涉及的模块/包，秒级返回。
 
 ```bash
-# 例：project-context.md「增量测试命令」= cargo test -p core --lib
+# 例：.codeedict/project-context.md「增量测试命令」= cargo test -p core --lib
 cargo test -p core --lib
 ```
 
 **何时改用全量命令**：仅当步骤 1 判定为「全量回归」（涉及接口/导出签名变更、新增模块、删除公共 API）时，才跑「全量测试命令」。
 
 ```bash
-# 例：project-context.md「全量测试命令」= cargo test --workspace
+# 例：.codeedict/project-context.md「全量测试命令」= cargo test --workspace
 cargo test --workspace
 ```
 

@@ -28,7 +28,7 @@
 ## 路径解析
 
 主 Agent 传入 `rootPath`（项目根绝对路径）、`task_id` 和 `title`（中文标题，≤15 字）。路径拼接：
-- 项目内：`<rootPath>/project-context.md`、`<rootPath>/.codeedict/...`
+- 项目内：`<rootPath>/.codeedict/project-context.md`、`<rootPath>/.codeedict/...`
 - 全局：`~/.codeedict/<路径>`
 - **文件命名**：`<YYYYMMDD>-<中文标题>-<taskId>[后缀].md`，如 `20260804-统一记忆入口-proactive-P2-memory-entry-unify.md`
 - 生成文件名后告知主 Agent 具体文件名
@@ -40,8 +40,8 @@
 | 来源 | 内容 | 路径 |
 |------|------|------|
 | 主 Agent | `task_id`、`title`、任务性质（修改意图 / 纯分析） | — |
-| 文件 | 项目架构地图（强制首读） | `<rootPath>/project-context.md` |
-| 文件 | 项目工具链配置 | `<rootPath>/project-context.md` → 「工具链」章节 |
+| 文件 | 项目架构地图（强制首读） | `<rootPath>/.codeedict/project-context.md` |
+| 文件 | 项目工具链配置 | `<rootPath>/.codeedict/project-context.md` → 「工具链」章节 |
 | 文件（Clarify 转入） | 需求说明文档 | `<rootPath>/.codeedict/requirements/<YYYYMMDD>-<title>-<taskId>-req.md` |
 
 ## 执行流程
@@ -58,7 +58,7 @@
 ### 完整分析路径（analyze 阶段）
 
 1. **读项目架构地图**（强制第一步）
-   读 `<rootPath>/project-context.md`，定位所涉模块（看「模块引导索引」）并读对应 `<模块目录>/MODULE.md`（若存在）。**方案必须标注涉及模块，且不得违背其「依赖铁律 / 不可破坏约定 / 已知雷区 / 边界标记」**。方案文件须含「涉及模块」段，列出模块 + 遵守的约束。
+   读 `<rootPath>/.codeedict/project-context.md`，定位所涉模块（看「模块引导索引」）并读对应 `<模块目录>/MODULE.md`（若存在）。**方案必须标注涉及模块，且不得违背其「依赖铁律 / 不可破坏约定 / 已知雷区 / 边界标记」**。方案文件须含「涉及模块」段，列出模块 + 遵守的约束。
 
 2. **优先级评定**
    - `P0` 阻塞不可用 · `P1` 核心路径影响 · `P2` 体验问题 · `P3` 锦上添花
@@ -91,7 +91,7 @@
 
 **只做三件事，不重跑完整分析**：
 
-1. **只读审查意见**：读 proposal 文档末尾最新的 `审查报告 vN`（从 `---` 分隔线之下读），不重读 proposal 全文、不重读 project-context.md、不重扫源码
+1. **只读审查意见**：读 proposal 文档末尾最新的 `审查报告 vN`（从 `---` 分隔线之下读），不重读 proposal 全文、不重读 .codeedict/project-context.md、不重扫源码
 2. **逐条修正**：按审查报告的质疑项，只修改被驳回的段落。用 `replace_in_file` 精准替换，不改无关段落
 3. **保留审查记录**：不删除已有审查报告，新内容只替换对应段落
 

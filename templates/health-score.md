@@ -1,6 +1,6 @@
 # 项目健康评分
 
-读 `project-context.md` 当前内容 + 本次变更代码，评估三维健康度：
+读 `.codeedict/project-context.md` 当前内容 + 本次变更代码，评估三维健康度：
 
 | 维度 | 权重 | AI 评分依据 |
 |------|:---:|------------|
@@ -14,7 +14,7 @@
 - 严重违规一项 -25
 - 底线分 0，不倒扣
 
-写入 `project-context.md` 顶部：
+写入 `.codeedict/project-context.md` 顶部：
 
 ```
 # 项目架构地图 — <projectId>

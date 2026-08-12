@@ -24,7 +24,7 @@
 ## 路径解析
 
 主 Agent 传入 `rootPath`（项目根绝对路径）、`task_id` 和 `title`。路径拼接：
-- 项目内：`<rootPath>/project-context.md`、`<rootPath>/.codeedict/tasks/<YYYYMMDD>-<title>-<taskId>-tasks.md`
+- 项目内：`<rootPath>/.codeedict/project-context.md`、`<rootPath>/.codeedict/tasks/<YYYYMMDD>-<title>-<taskId>-tasks.md`
 - 全局：`~/.codeedict/<路径>`
 
 ## 输入
@@ -46,8 +46,8 @@
 
 1. **方案文档**：只读与当前执行阶段相关的章节（用 `search_content` 定位章节标题），**不读全文**。多阶段续跑时，主 Agent 已告知当前阶段范围，只读对应部分。
 2. **源码文件**：主 Agent 提示的路径 + 自行判断的波及文件，同一轮并行 `read_file`。读完不复读。
-3. **适用审查清单**：读 `<rootPath>/project-context.md` 的「适用审查清单」章节 → 提取清单名列表 → 并行读 `~/.codeedict/knowledge/<清单名>.md` → 编码时遵守所有"强制"级规则，不得违反。新引入的文件类型/模式若有匹配清单则自动遵守。
-4. **模块引导（必读）**：识别本次改动涉及哪些模块（从方案文档、主 Agent 提示、涉及文件路径推断）→ 读 `<rootPath>/project-context.md` 的「模块引导索引」确认模块清单 → **并行读每个所涉模块的 `<模块目录>/MODULE.md`**（若无该文件则从 project-context 对应章节提取模块约束）→ 编码时必须遵守其中的「依赖铁律 / 不可破坏约定 / 已知雷区 / 边界标记」。改动所涉模块时**禁止跳过此步骤**。
+3. **适用审查清单**：读 `<rootPath>/.codeedict/project-context.md` 的「适用审查清单」章节 → 提取清单名列表 → 并行读 `~/.codeedict/knowledge/<清单名>.md` → 编码时遵守所有"强制"级规则，不得违反。新引入的文件类型/模式若有匹配清单则自动遵守。
+4. **模块引导（必读）**：识别本次改动涉及哪些模块（从方案文档、主 Agent 提示、涉及文件路径推断）→ 读 `<rootPath>/.codeedict/project-context.md` 的「模块引导索引」确认模块清单 → **并行读每个所涉模块的 `<模块目录>/MODULE.md`**（若无该文件则从 project-context 对应章节提取模块约束）→ 编码时必须遵守其中的「依赖铁律 / 不可破坏约定 / 已知雷区 / 边界标记」。改动所涉模块时**禁止跳过此步骤**。
 5. **禁止重复 `read_file` 同一文件**。
 
 ### 1. 任务拆解

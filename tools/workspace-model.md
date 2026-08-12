@@ -28,29 +28,34 @@ Codeedict 使用两级存储：全局 `~/.codeedict/` + 项目目录。
 
 ```
 <projectRoot>/
-├── project-context.md                 ← git ✅  架构地图 + 工具链
-├── .codeedict/                        ← git ❌（.gitignore 一行）
+├── .codeedict/                        ← git ❌（.gitignore 一行，独立仓）
+│   ├── project-context.md             ← git ❌  架构地图 + 工具链（开发操作手册）
 │   ├── tasks/<taskId>-tasks.md
 │   ├── task-tracker.md
 │   ├── pending-issues.md
 │   └── states/<taskId>.json
-├── docs/                              ← git ✅  项目知识库
-│   ├── proposals/<taskId>.md
-│   ├── analysis/<taskId>-analysis.md
-│   ├── requirements/<taskId>-req.md
-│   └── archive.md
+├── docs/                              ← git ✅  面向项目的文档
+│   ├── architecture.md
+│   └── frontend-ui-guide.md
 └── src/ ...
 ```
 
-### git 提交部分（项目知识资产）
+### .codeedict 部分（开发过程文档，独立仓，gitignore 不进主仓库）
 
 | 路径 | 职责 | 读写方 |
 |------|------|--------|
-| `project-context.md` | 项目全部上下文：技术栈、项目结构、工具链、可复用组件、命名规则、架构分层、边界标记、测试体系、依赖关系图、反模式、设计约束 | 主 Agent 写入（初始化+新项目引导+Archive+刷新），Analyst/Code-reviewer/Tester 只读 |
+| `.codeedict/project-context.md` | 项目全部上下文：技术栈、项目结构、工具链、可复用组件、命名规则、架构分层、边界标记、测试体系、依赖关系图、反模式、设计约束 | 主 Agent 写入（初始化+新项目引导+Archive+刷新），Analyst/Code-reviewer/Tester 只读 |
 | `.codeedict/proposals/<taskId>.md` | 六段式方案文档 | 主 Agent (Clarify) / Analyst 写入，Coder/Reviewer/Proposal-Reviewer 只读 |
 | `.codeedict/analysis/<taskId>-analysis.md` | 结构化分析报告 | Analyst 写入，Proposal-Reviewer 只读 |
 | `.codeedict/requirements/<taskId>-req.md` | 需求澄清文档 | 主 Agent (Clarify) 写入，Analyst 只读 |
 | `.codeedict/archive.md` | 已归档任务索引（不搬运文件，只记索引行） | 主 Agent 追加 |
+
+### git 提交部分（面向项目的文档）
+
+| 路径 | 职责 | 读写方 |
+|------|------|--------|
+| `docs/architecture.md` | 项目架构文档 | 主 Agent 写入，维护者维护 |
+| `docs/frontend-ui-guide.md` | 前端 UI 指南 | 维护者维护 |
 
 ### git 忽略部分（agent 执行态，高频变化）
 
@@ -68,7 +73,7 @@ Agent 和 check.js 通过 `projects.json` 实现项目路径定位：
 ### Agent 端
 
 - **全局路径**：直接 `~/.codeedict/<相对路径>`（硬编码）
-- **项目内路径**：通过 `projectId` 查 `~/.codeedict/projects.json` → 拿到 `rootPath` → 拼接 `<rootPath>/project-context.md`、`<rootPath>/docs/...` 等
+- **项目内路径**：通过 `projectId` 查 `~/.codeedict/projects.json` → 拿到 `rootPath` → 拼接 `<rootPath>/.codeedict/project-context.md`、`<rootPath>/.codeedict/<proposals|analysis|requirements|archive>` 等
 
 ### check.js 端
 

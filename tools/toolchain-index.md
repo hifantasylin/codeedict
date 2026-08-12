@@ -1,6 +1,6 @@
-# 工具链 — 按需探测，写入 project-context.md
+# 工具链 — 按需探测，写入 .codeedict/project-context.md
 
-AI码律 不硬编码任何语言或框架命令。工具链在项目初始化时探测并写入 `<rootPath>/project-context.md` 的「工具链」章节。
+AI码律 不硬编码任何语言或框架命令。工具链在项目初始化时探测并写入 `<rootPath>/.codeedict/project-context.md` 的「工具链」章节。
 
 ## 初始化时探测逻辑
 
@@ -23,7 +23,7 @@ AI码律 不硬编码任何语言或框架命令。工具链在项目初始化�
    - package.json → 读 scripts 字段，有 "build" 就用 npm run build
    - build.gradle → 检查是否有 gradlew wrapper
 
-3. 写入 project-context.md 工具链章节:
+3. 写入 .codeedict/project-context.md 工具链章节:
 
 ## 工具链
 | 命令 | 用途 |
@@ -36,7 +36,7 @@ AI码律 不硬编码任何语言或框架命令。工具链在项目初始化�
 
 ## 使用时加载
 
-Agent（coder/tester）进入 Code 阶段时读 `<rootPath>/project-context.md` → 「工具链」章节 → 获取编译/测试/Lint/部署命令。
+Agent（coder/tester）进入 Code 阶段时读 `<rootPath>/.codeedict/project-context.md` → 「工具链」章节 → 获取编译/测试/Lint/部署命令。
 
 ## 多命令项目
 

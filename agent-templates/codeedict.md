@@ -32,7 +32,7 @@
 
 | 路径 | 用途 |
 |------|------|
-| `<rootPath>/project-context.md` | 架构地图 + 工具链 |
+| `<rootPath>/.codeedict/project-context.md` | 架构地图 + 工具链 |
 | `<rootPath>/.codeedict/proposals/<YYYYMMDD>-<中文标题>-<taskId>.md` | 方案文档 |
 | `<rootPath>/.codeedict/analysis/<YYYYMMDD>-<中文标题>-<taskId>-analysis.md` | 分析报告 |
 | `<rootPath>/.codeedict/requirements/<YYYYMMDD>-<中文标题>-<taskId>-req.md` | 需求澄清 |
@@ -103,7 +103,7 @@
 不切换状态机，主 Agent 直接处理。
 
 1. 用户指定项目路径 `<rootPath>` 后，宣布 `🏗️ 开始项目初始化`
-2. 读项目文件自动探测工具链，写入 `<rootPath>/project-context.md` 的「工具链」章节
+2. 读项目文件自动探测工具链，写入 `<rootPath>/.codeedict/project-context.md` 的「工具链」章节
 3. 在 `~/.codeedict/projects.json` 登记项目（`projectId → { name, path: rootPath }`）
 4. 创建 `<rootPath>/.codeedict/` 目录及开发文档子目录（`proposals/` `analysis/` `requirements/` `archive/` `tasks/`），注入 `.gitignore` 忽略 `.codeedict/`；`<rootPath>/docs/` 仅保留面向项目的文档
    - **顺序约束**：**必须先在主仓库 `.gitignore` 忽略 `.codeedict/`，再 init 该独立仓**（若先 init、后忽略，中间任何 `git add` 会触发 "embedded git repository" 警告）
@@ -132,7 +132,7 @@
 
      > 开发总纲（`general-dev` / `rust-dev`）与审查清单共用「适用审查清单」表驱动机制：coder 第 0 步读表 → 读 `~/.codeedict/knowledge/<清单名>.md` 遵守所有"强制"级规则；reviewer 对账时同样读表逐条核对。项目级专属规范由维护者手写进「设计约束」章节（不自动注入）。
 
-   - 按 `templates/project-context.md` 模板写入 `<rootPath>/project-context.md`
+   - 按 `templates/project-context.md` 模板写入 `<rootPath>/.codeedict/project-context.md`
    - **生成模块开发引导**：对扫描到的每个模块（如 Gradle module / Maven module / src 顶层目录），按 `templates/module-guide.md` 模板写入 `<模块目录>/MODULE.md`。内容从已生成的 project-context 按模块切片：依赖铁律（从依赖关系图反推）、已知雷区（从反模式表按模块归组）、波及影响（从依赖边表）、边界标记（按模块过滤）。同时在 project-context 的「模块引导索引」章节登记每个模块。**注意**：仅对"有明确边界、独立依赖"的模块生成，单文件/无依赖模块可跳过
    - 自动写入，仅告知用户生成摘要（章节数 + 依赖边数 + 反模式数 + 测试体系 + 适用清单数 + 模块引导数）
 6. **新项目判定**：扫描后若各章节全空（或仅 1-2 条）→ 判定为新项目 → 进入 AI 诊断式对话（见下方"新项目引导"）
@@ -141,7 +141,7 @@
 
 不切换状态机。用户指令 `刷新规范 <projectId>`：
 
-1. 重新扫描项目源码，更新 `<rootPath>/project-context.md`
+1. 重新扫描项目源码，更新 `<rootPath>/.codeedict/project-context.md`
 2. **重建各模块 `MODULE.md`**：按 `templates/module-guide.md` 重新生成所有模块的引导文档（依赖/雷区/波及影响可能因重构而变化），并同步更新 project-context 的「模块引导索引」
 3. 对比上次版本，自动保存变更
 4. 告知用户变更摘要（新增/变更/删除的惯例数量 + 模块引导更新数）
@@ -224,7 +224,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 
 4. 编码完成后：
    - **lightweight**：主 Agent 编码完毕 → 执行编译验证 → 直接进入步骤 5（委派 tester）
-   - **normal**：coder 返回 `[AGENT:COMPLETED][BUILD:passed][STAGES:N]` → 委派 `codeedict-tester`（传入修改的文件列表 + 从 `project-context.md`「测试体系」读取的**增量测试命令**）。`STAGES:N` 表示 coder 已完成 N 个阶段的编码（内循环自动串行，不中断用户）。除非明确全量回归，否则**只传增量测试命令**，让 tester 秒级回归，不触发全量（全量慢且可能含已知失败目标）
+   - **normal**：coder 返回 `[AGENT:COMPLETED][BUILD:passed][STAGES:N]` → 委派 `codeedict-tester`（传入修改的文件列表 + 从 `.codeedict/project-context.md`「测试体系」读取的**增量测试命令**）。`STAGES:N` 表示 coder 已完成 N 个阶段的编码（内循环自动串行，不中断用户）。除非明确全量回归，否则**只传增量测试命令**，让 tester 秒级回归，不触发全量（全量慢且可能含已知失败目标）
 5. tester 返回：
    - `[AGENT:COMPLETED][TEST:*]` → 调用 `codeedict_stage` 切到 `commit`，宣布 `✅ 进入提交确认阶段`
    - `[AGENT:REJECTED:test-failure]` → **内循环**：保持 `code` → 重新委派 coder（传入测试失败详情）→ coder 修正 → 重新委派 tester → 重复直到通过，同一失败点 3 次后仍然失败 → 告知用户
@@ -244,11 +244,11 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 1. **登记索引**：在 `<rootPath>/.codeedict/archive.md` 追加索引行
 2. **待处理回顾**（仅代码修改后）：读 `<rootPath>/.codeedict/pending-issues.md` 输出摘要
 3. **规范提炼**（仅代码修改后）：
-   a. 扫描新增文件的命名模式 → 对比 `<rootPath>/project-context.md` → 新发现的追加（不覆盖）
+   a. 扫描新增文件的命名模式 → 对比 `<rootPath>/.codeedict/project-context.md` → 新发现的追加（不覆盖）
    b. **反模式提取**（仅 bugfix）：从 proposal 提取错误模式追加到反模式表
    c. **依赖图增量**：重扫变更文件的 import → diff 追加/移除边，不重扫全项目
 4. **指标记录**：在 `~/.codeedict/metrics.md` 追加一行
-5. **项目健康评分**：按 `templates/health-score.md` 评分并写入 `project-context.md`
+5. **项目健康评分**：按 `templates/health-score.md` 评分并写入 `.codeedict/project-context.md`
 6. **git commit（主仓库）**：`git add -A && git commit -m "<code-reviewer 产出的 commit message>"`（**禁止 git push，除非用户明确指令**）
 7. **同步 `.codeedict/` 独立仓**：将本任务产生的开发文档（proposal/analysis/tasks/`archive.md` 等）commit 到 `.codeedict/` 独立仓。若该仓**已关联远端**则一并 push，**未关联远端**则只 commit（提示用户可自行关联远端同步）
 
