@@ -104,19 +104,18 @@ function _projectIdFromTask(taskId) {
 }
 
 // 查找方案/分析文档：优先精确 `${taskId}${suffix}`，其次后缀匹配 `*-${taskId}${suffix}`
-// 兼容两种命名：
-//   旧版：docs/proposals/<taskId>.md
-//   新版：docs/proposals/<YYYYMMDD>-<中文标题>-<taskId>.md
+// 开发过程文档统一放 `.codeedict/<subdir>`：
+//   新版：.codeedict/proposals/<YYYYMMDD>-<中文标题>-<taskId>.md
 function _findDocFile(root, subdir, taskId, suffix = '.md') {
     if (!root) return null;
-    const dir = path.join(root, 'docs', subdir);
+    const dir = path.join(root, '.codeedict', subdir);
     const exact = path.join(dir, `${taskId}${suffix}`);
     if (fs.existsSync(exact)) return exact;
     try {
         for (const f of fs.readdirSync(dir)) {
             if (f.endsWith(`${taskId}${suffix}`)) return path.join(dir, f);
         }
-    } catch (e) { /* docs/<subdir> 目录不存在 */ }
+    } catch (e) { /* .codeedict/<subdir> 目录不存在 */ }
     return null;
 }
 
@@ -257,7 +256,7 @@ function cmdCheckEntry(taskId, newStage) {
         const analysisPath = _findDocFile(root, 'analysis', taskId);
         const hasProposal = !!proposalPath;
         const hasAnalysis  = !!analysisPath;
-        if (!hasProposal && !hasAnalysis) return _block(`缺少方案文件。请确保 docs/proposals/...${taskId}.md 或 docs/analysis/...${taskId}.md 存在`);
+        if (!hasProposal && !hasAnalysis) return _block(`缺少方案文件。请确保 .codeedict/proposals/...${taskId}.md 或 .codeedict/analysis/...${taskId}.md 存在`);
         const cps = state.checkpoints || {};
         // review_approved 不是必须的：MODE:report 任务无 review 批准，但已有分析报告即可进入 Code
         if (hasProposal && !cps.review_approved) return _block(`Review 硬卡点尚未批准，请先 approve ${taskId} review`);

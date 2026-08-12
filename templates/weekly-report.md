@@ -38,7 +38,7 @@
 
 | 栏目 | 来源 |
 |------|------|
-| 已完成 | 各项目 `docs/archive.md` 中本周归档的任务 |
+| 已完成 | 各项目 `.codeedict/archive.md` 中本周归档的任务 |
 | 进行中 | 各项目 `.codeedict/task-tracker.md` 中本周有更新的活跃任务（含 ⏳/🔧 状态） |
 | 受阻 | 各项目 `.codeedict/task-tracker.md` 中 ⚠️ 状态的任务 |
 | 效率趋势 | `~/.codeedict/metrics.md`（每次 Archive 时自动追加） |

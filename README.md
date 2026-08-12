@@ -35,7 +35,7 @@ AI 是副驾驶，AI码律 是仪表盘——状态、记录、检查点、代�
 周报
 
 # 单独审查已有的文档或代码
-审查 docs/proposals/xxx.md
+审查 .codeedict/proposals/xxx.md
 ```
 
 > 规则：**修/改/加/bug/fix/crash/不工作/实现/开发/新增/feat/优化/重构** → 直接进 Analyze。**梳理/整理思路/有个想法/不太成熟/讨论** → 进 Clarify。
@@ -104,7 +104,7 @@ AI 是副驾驶，AI码律 是仪表盘——状态、记录、检查点、代�
 仅用于需求模糊场景。主 Agent 轻量交互式调度（多轮追问，不委派子 agent）：
 
 1. 以需求梳理者人格逐轮追问（3–5 轮），覆盖：做什么、谁用、场景、边界、技术约束
-2. 写需求文档 `docs/requirements/<taskId>-req.md`
+2. 写需求文档 `.codeedict/requirements/<taskId>-req.md`
 3. 切到 `analyze` 阶段，委派 analyst 继续
 
 ### 三角度审查

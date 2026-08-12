@@ -33,13 +33,15 @@
 | 路径 | 用途 |
 |------|------|
 | `<rootPath>/project-context.md` | 架构地图 + 工具链 |
-| `<rootPath>/docs/proposals/<YYYYMMDD>-<中文标题>-<taskId>.md` | 方案文档 |
-| `<rootPath>/docs/analysis/<YYYYMMDD>-<中文标题>-<taskId>-analysis.md` | 分析报告 |
-| `<rootPath>/docs/requirements/<YYYYMMDD>-<中文标题>-<taskId>-req.md` | 需求澄清 |
-| `<rootPath>/docs/archive.md` | 归档索引 |
+| `<rootPath>/.codeedict/proposals/<YYYYMMDD>-<中文标题>-<taskId>.md` | 方案文档 |
+| `<rootPath>/.codeedict/analysis/<YYYYMMDD>-<中文标题>-<taskId>-analysis.md` | 分析报告 |
+| `<rootPath>/.codeedict/requirements/<YYYYMMDD>-<中文标题>-<taskId>-req.md` | 需求澄清 |
+| `<rootPath>/.codeedict/archive.md` | 归档索引 |
 | `<rootPath>/.codeedict/tasks/<YYYYMMDD>-<中文标题>-<taskId>-tasks.md` | 编码拆解 |
 | `<rootPath>/.codeedict/task-tracker.md` | 活跃任务 |
 | `<rootPath>/.codeedict/pending-issues.md` | 待处理问题 |
+
+> **开发/分析过程文档（agent 中间产物）一律写 `<rootPath>/.codeedict/`，不得写入 `docs/`**。`docs/` 只放面向项目的文档（architecture.md / frontend-ui-guide.md / README 等，随项目入库）。
 
 > **文件命名规则**：`<YYYYMMDD>-<中文标题>-<taskId>[后缀].md`。中文标题由 analyst 从用户描述中提取核心名词短语（≤15 字），taskId 保持 `projectId-类别序号-功能标识` 格式不变。如 `20260804-统一记忆入口-proactive-P2-memory-entry-unify.md`。
 
@@ -103,12 +105,14 @@
 1. 用户指定项目路径 `<rootPath>` 后，宣布 `🏗️ 开始项目初始化`
 2. 读项目文件自动探测工具链，写入 `<rootPath>/project-context.md` 的「工具链」章节
 3. 在 `~/.codeedict/projects.json` 登记项目（`projectId → { name, path: rootPath }`）
-4. 创建 `<rootPath>/.codeedict/` 目录（注入 `.gitignore` 忽略该目录）和 `<rootPath>/docs/` 子目录
+4. 创建 `<rootPath>/.codeedict/` 目录及开发文档子目录（`proposals/` `analysis/` `requirements/` `archive/` `tasks/`），注入 `.gitignore` 忽略 `.codeedict/`；`<rootPath>/docs/` 仅保留面向项目的文档
+   - **顺序约束**：**必须先在主仓库 `.gitignore` 忽略 `.codeedict/`，再 init 该独立仓**（若先 init、后忽略，中间任何 `git add` 会触发 "embedded git repository" 警告）
+   - **为 `.codeedict/` 单独建一个 git 仓**：init 该独立仓；若用户已提供远端地址则关联并首次 push，否则提示用户可自行关联远端以跨机器同步开发文档
 5. **扫描架构惯例**：
    - 用 `search_content` 扫描全项目 `^\s*import.*from|require\(|#include`，汇总为双向边表
    - 搜索项目代码中重复出现的命名/分层/继承模式
    - **探测测试体系**：扫描测试框架配置 + 测试目录 + 测试文件模式 + 测试命令 → 写入「测试体系」章节
-   - **探测适用审查清单**：扫描语言/框架标志文件，写入「适用审查清单」章节：
+   - **探测适用审查清单**：**基础清单（correctness / maintainability / reliability / security / performance）默认始终写入「适用审查清单」**；再按语言/框架标志文件追加对应清单：
 
      | 标志文件 | 清单名 |
      |---------|--------|
@@ -119,6 +123,8 @@
 
      写入格式：
      ```
+     | correctness | (默认) | 强制 |
+     | maintainability | (默认) | 强制 |
      | android | build.gradle | 强制 |
      ```
 
@@ -152,7 +158,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 1. 调用 `codeedict_init`（`initial_stage` = `clarify`，`project_id` = `<projectId>`），宣布 `💡 进入需求澄清阶段`
    - 若返回 `blocked: project_not_initialized` → 先执行 🏗️ 项目初始化（静默），完成后重试 `codeedict_init`
 2. 以"需求梳理者"人格逐轮追问（3–5 轮），覆盖：做什么、谁用、场景、边界、技术约束
-3. 需求确认 → 写入 `<rootPath>/docs/requirements/<YYYYMMDD>-<title>-<taskId>-req.md`
+3. 需求确认 → 写入 `<rootPath>/.codeedict/requirements/<YYYYMMDD>-<title>-<taskId>-req.md`
 4. 调用 `codeedict_stage` 切换到 `analyze`，宣布 `🔍 转入分析阶段`
 5. 继续执行 🔍 Analyze 入口的 **"从 Clarify 转入"** 路径
 
@@ -167,7 +173,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 3. analyst 通过 `[AGENT:COMPLETED]` 汇报 → 主 Agent 切换至 `review`
 
 **从 Clarify 转入**（需求已确认，当前阶段 = `analyze`）：
-1. 告知分析师读取 `<rootPath>/docs/requirements/<YYYYMMDD>-<title>-<taskId>-req.md`
+1. 告知分析师读取 `<rootPath>/.codeedict/requirements/<YYYYMMDD>-<title>-<taskId>-req.md`
 2. 委派 `codeedict-analyst`，产出同上
 
 **审查 → 卡点 → 分支**：
@@ -219,7 +225,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
    - `[AGENT:COMPLETED][TEST:*]` → 调用 `codeedict_stage` 切到 `commit`，宣布 `✅ 进入提交确认阶段`
    - `[AGENT:REJECTED:test-failure]` → **内循环**：保持 `code` → 重新委派 coder（传入测试失败详情）→ coder 修正 → 重新委派 tester → 重复直到通过，同一失败点 3 次后仍然失败 → 告知用户
 6. 委派 `codeedict-code-reviewer`（传入 `proposal_path` 和 `tasks_path`）：
-   - 返回 `[AGENT:COMPLETED]` → **展示审查结论 + commit message → ⚠️ 必须等待用户确认**。用户可能需要真机验证、手动测试等，不要催促。用户确认后 → **执行 📦 Archive**（archive 末尾自动执行 git commit，不产生两笔 commit）
+   - 返回 `[AGENT:COMPLETED]` → **展示审查结论 + commit message → ⚠️ 必须等待用户确认**。用户可能需要真机验证、手动测试等，不要催促。用户确认后 → **执行 📦 Archive**（归档末尾统一提交，见 Archive 步骤）
    - 返回 `[AGENT:REJECTED:deviation]` → **内循环**：切回 `code` → 委派 coder 修正（传入审查结论，偏离修正**不走 lightweight**，必须经过 coder+tester）→ coder 返回 `[BUILD:passed]` → 委派 tester → tester 通过 → 切回 `commit` → 重新委派 reviewer → 重复直到通过，同一偏离点 3 次后仍驳回 → reviewer 自动裁决：接受偏离（标注原因）或回滚本次改动
    - 返回 `[AGENT:REJECTED:TIMEOUT]` → 告知用户，保持当前阶段
 
@@ -231,7 +237,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 
 统一归档流程。调用 `codeedict_stage` 切到 `archive`，宣布 `📦 进入归档封存阶段`：
 
-1. **登记索引**：在 `<rootPath>/docs/archive.md` 追加索引行
+1. **登记索引**：在 `<rootPath>/.codeedict/archive.md` 追加索引行
 2. **待处理回顾**（仅代码修改后）：读 `<rootPath>/.codeedict/pending-issues.md` 输出摘要
 3. **规范提炼**（仅代码修改后）：
    a. 扫描新增文件的命名模式 → 对比 `<rootPath>/project-context.md` → 新发现的追加（不覆盖）
@@ -239,7 +245,8 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
    c. **依赖图增量**：重扫变更文件的 import → diff 追加/移除边，不重扫全项目
 4. **指标记录**：在 `~/.codeedict/metrics.md` 追加一行
 5. **项目健康评分**：按 `templates/health-score.md` 评分并写入 `project-context.md`
-6. **git commit**：`git add -A && git commit -m "<code-reviewer 产出的 commit message>"`（**禁止 git push，除非用户明确指令**）。Archive 产生的文件变更（archive.md、project-context.md、metrics.md 等）也被包含在同一笔 commit 中
+6. **git commit（主仓库）**：`git add -A && git commit -m "<code-reviewer 产出的 commit message>"`（**禁止 git push，除非用户明确指令**）
+7. **同步 `.codeedict/` 独立仓**：将本任务产生的开发文档（proposal/analysis/tasks/`archive.md` 等）commit 到 `.codeedict/` 独立仓。若该仓**已关联远端**则一并 push，**未关联远端**则只 commit（提示用户可自行关联远端同步）
 
 ### 📊 Weekly
 
@@ -247,7 +254,7 @@ Init 判定为新项目后执行。**不让用户填技术选型表**。
 "本周"范围：周一到当前日期。
 
 1. 读 `~/.codeedict/projects.json` 获取所有项目 rootPath，遍历各项目的 `.codeedict/task-tracker.md`，提取本周有更新的任务
-2. 读各项目的 `docs/archive.md`，提取本周归档
+2. 读各项目的 `.codeedict/archive.md`，提取本周归档
 3. 读 `~/.codeedict/metrics.md`，输出**效率趋势**：
    - 本周完成数 / 平均驳回次数 / 驳回率
    - 💡 建议（如"本周驳回率偏高，关注审查官驳回原因"）

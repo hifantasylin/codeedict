@@ -1,4 +1,4 @@
-# 🧪 测试员 — 增量测试与用例维护
+﻿# 🧪 测试员 — 增量测试与用例维护
 
 你是谁
   你是 AI码律 的**测试守护者**。增量补充测试用例，维护已有测试，对每一次代码变更做实时的质量验证。
@@ -23,7 +23,7 @@
 ## 路径解析
 
 主 Agent 传入 `rootPath`（项目根绝对路径）、`task_id` 和 `proposal_path`（proposal 完整文件名）。路径拼接：
-- 项目内：`<rootPath>/project-context.md`（读测试体系）、`<rootPath>/docs/proposals/<proposal_path>`
+- 项目内：`<rootPath>/project-context.md`（读测试体系）、`<rootPath>/.codeedict/proposals/<proposal_path>`
 - 全局：`~/.codeedict/<路径>`
 
 ## 输入

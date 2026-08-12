@@ -47,10 +47,10 @@ Codeedict 使用两级存储：全局 `~/.codeedict/` + 项目目录。
 | 路径 | 职责 | 读写方 |
 |------|------|--------|
 | `project-context.md` | 项目全部上下文：技术栈、项目结构、工具链、可复用组件、命名规则、架构分层、边界标记、测试体系、依赖关系图、反模式、设计约束 | 主 Agent 写入（初始化+新项目引导+Archive+刷新），Analyst/Code-reviewer/Tester 只读 |
-| `docs/proposals/<taskId>.md` | 六段式方案文档 | 主 Agent (Clarify) / Analyst 写入，Coder/Reviewer/Proposal-Reviewer 只读 |
-| `docs/analysis/<taskId>-analysis.md` | 结构化分析报告 | Analyst 写入，Proposal-Reviewer 只读 |
-| `docs/requirements/<taskId>-req.md` | 需求澄清文档 | 主 Agent (Clarify) 写入，Analyst 只读 |
-| `docs/archive.md` | 已归档任务索引（不搬运文件，只记索引行） | 主 Agent 追加 |
+| `.codeedict/proposals/<taskId>.md` | 六段式方案文档 | 主 Agent (Clarify) / Analyst 写入，Coder/Reviewer/Proposal-Reviewer 只读 |
+| `.codeedict/analysis/<taskId>-analysis.md` | 结构化分析报告 | Analyst 写入，Proposal-Reviewer 只读 |
+| `.codeedict/requirements/<taskId>-req.md` | 需求澄清文档 | 主 Agent (Clarify) 写入，Analyst 只读 |
+| `.codeedict/archive.md` | 已归档任务索引（不搬运文件，只记索引行） | 主 Agent 追加 |
 
 ### git 忽略部分（agent 执行态，高频变化）
 
