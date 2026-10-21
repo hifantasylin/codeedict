@@ -137,6 +137,27 @@ function copyRuntimeFiles(targetDir) {
     const toolsDst = path.join(targetDir, 'tools');
     copyDir(toolsSrc, toolsDst);
     console.log(`  ✅ ${toolsDst}/`);
+
+    installKnowledge();
+}
+
+/**
+ * 把审查清单装到全局目录 ~/.codeedict/knowledge/。
+ *
+ * coder / reviewer 读的是 `<home>/.codeedict/knowledge/<清单名>.md`，
+ * 不是构建目录下的 templates/knowledge —— 少了这一步，清单机制会静默失效。
+ * 已存在的同名文件直接覆盖（随版本更新），用户自建的其它清单不动。
+ */
+function installKnowledge() {
+    const srcDir = path.join(ROOT, 'templates', 'knowledge');
+    if (!fs.existsSync(srcDir)) return;
+    const dstDir = path.join(os.homedir(), '.codeedict', 'knowledge');
+    fs.mkdirSync(dstDir, { recursive: true });
+    const files = fs.readdirSync(srcDir).filter((f) => f.endsWith('.md'));
+    for (const f of files) {
+        fs.copyFileSync(path.join(srcDir, f), path.join(dstDir, f));
+    }
+    console.log(`  ✅ ${dstDir}/ (${files.length} 个审查清单)`);
 }
 
 function cleanOldTemplates(outputDir) {

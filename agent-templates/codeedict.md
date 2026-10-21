@@ -105,8 +105,19 @@
 1. 用户指定项目路径 `<rootPath>` 后，宣布 `🏗️ 开始项目初始化`
 2. 读项目文件自动探测工具链，写入 `<rootPath>/.codeedict/project-context.md` 的「工具链」章节
 3. 在 `~/.codeedict/projects.json` 登记项目（`projectId → { name, path: rootPath }`）
-4. 创建 `<rootPath>/.codeedict/` 目录及开发文档子目录（`proposals/` `analysis/` `requirements/` `archive/` `tasks/`），注入 `.gitignore` 忽略 `.codeedict/`；`<rootPath>/docs/` 仅保留面向项目的文档
-   - **顺序约束**：**必须先在主仓库 `.gitignore` 忽略 `.codeedict/`，再 init 该独立仓**（若先 init、后忽略，中间任何 `git add` 会触发 "embedded git repository" 警告）
+4. 创建 `<rootPath>/.codeedict/` 目录及开发文档子目录（`proposals/` `analysis/` `requirements/` `archive/` `tasks/` `states/`），**用 `.git/info/exclude` 做本地忽略**（不改主仓库 `.gitignore`）；`<rootPath>/docs/` 仅保留面向项目的文档
+   - **忽略方式（零侵入，强制）**：写入 git 目录下的 `info/exclude`，**不修改仓库里任何被跟踪文件**：
+     ```bash
+     cd <rootPath>                                  # 必须先进入项目根，--git-path 返回的是相对路径
+     EXCLUDE="$(git rev-parse --git-path info/exclude)"
+     mkdir -p "$(dirname "$EXCLUDE")"
+     grep -qxF '.codeedict/' "$EXCLUDE" 2>/dev/null || printf '.codeedict/\n' >> "$EXCLUDE"
+     ```
+     `git rev-parse --git-path` 能正确处理 worktree / submodule（`.git` 是文件而非目录）的情况，不要硬拼 `<rootPath>/.git/info/exclude`；但它返回的是**相对项目根**的路径，所以必须先 `cd` 到 `<rootPath>` 再执行，否则会写到错误位置。
+   - **禁止改主仓库 `.gitignore`**：那是侵入性改动，会让 `git status` 多出一条与业务无关的修改，也会被协作者的 diff 看到。`.git/info/exclude` 只在本机生效，零侵入。
+   - 若此前的版本已在 `.gitignore` 写过 `.codeedict/`：撤销那一行（`git checkout -- .gitignore` 或精确删除），再写 exclude。
+   - **顺序约束**：**必须先写好 exclude、再 init 独立仓**（若先 init、后忽略，中间任何 `git add` 会触发 "embedded git repository" 警告）
+   - 若 `<rootPath>` 不是 git 仓库（无 `.git`）：跳过忽略步骤，提示用户「当前项目未纳入 git，`.codeedict/` 不会进版本控制；若之后 init，请补写 `.git/info/exclude`」
    - **为 `.codeedict/` 单独建一个 git 仓**：init 该独立仓；若用户已提供远端地址则关联并首次 push，否则提示用户可自行关联远端以跨机器同步开发文档
 5. **扫描架构惯例**：
    - 用 `search_content` 扫描全项目 `^\s*import.*from|require\(|#include`，汇总为双向边表
@@ -133,8 +144,8 @@
      > 开发总纲（`general-dev` / `rust-dev`）与审查清单共用「适用审查清单」表驱动机制：coder 第 0 步读表 → 读 `~/.codeedict/knowledge/<清单名>.md` 遵守所有"强制"级规则；reviewer 对账时同样读表逐条核对。项目级专属规范由维护者手写进「设计约束」章节（不自动注入）。
 
    - 按 `templates/project-context.md` 模板写入 `<rootPath>/.codeedict/project-context.md`
-   - **生成模块开发引导**：对扫描到的每个模块（如 Gradle module / Maven module / src 顶层目录），按 `templates/module-guide.md` 模板写入 `<模块目录>/MODULE.md`。内容从已生成的 project-context 按模块切片：依赖铁律（从依赖关系图反推）、已知雷区（从反模式表按模块归组）、波及影响（从依赖边表）、边界标记（按模块过滤）。同时在 project-context 的「模块引导索引」章节登记每个模块。**注意**：仅对"有明确边界、独立依赖"的模块生成，单文件/无依赖模块可跳过
-   - 自动写入，仅告知用户生成摘要（章节数 + 依赖边数 + 反模式数 + 测试体系 + 适用清单数 + 模块引导数）
+   - **不向项目源码目录写入任何文件**。所有扫描结论只落在 `<rootPath>/.codeedict/` 内，模块信息作为「项目结构」「依赖关系图」「架构分层」「反模式」章节的一部分记录，不额外生成模块级文档
+   - 自动写入，仅告知用户生成摘要（章节数 + 依赖边数 + 反模式数 + 测试体系 + 适用清单数）
 6. **新项目判定**：扫描后若各章节全空（或仅 1-2 条）→ 判定为新项目 → 进入 AI 诊断式对话（见下方"新项目引导"）
 
 ### 🔄 规范刷新
@@ -142,9 +153,8 @@
 不切换状态机。用户指令 `刷新规范 <projectId>`：
 
 1. 重新扫描项目源码，更新 `<rootPath>/.codeedict/project-context.md`
-2. **重建各模块 `MODULE.md`**：按 `templates/module-guide.md` 重新生成所有模块的引导文档（依赖/雷区/波及影响可能因重构而变化），并同步更新 project-context 的「模块引导索引」
-3. 对比上次版本，自动保存变更
-4. 告知用户变更摘要（新增/变更/删除的惯例数量 + 模块引导更新数）
+2. 对比上次版本，自动保存变更
+3. 告知用户变更摘要（新增/变更/删除的惯例数量）
 
 ### 🆕 新项目引导（AI 诊断式）
 

@@ -177,7 +177,7 @@ codeedict/
 ```
 <projectRoot>/
 ├── project-context.md      架构地图 + 工具链 + 健康评分
-├── .codeedict/             agent 执行态（gitignored）
+├── .codeedict/             agent 执行态（.git/info/exclude 本地忽略）
 │   ├── tasks/              编码拆解清单
 │   ├── task-tracker.md     活跃任务看板
 │   ├── pending-issues.md   待处理问题

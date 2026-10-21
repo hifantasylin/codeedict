@@ -28,7 +28,7 @@ Codeedict 使用两级存储：全局 `~/.codeedict/` + 项目目录。
 
 ```
 <projectRoot>/
-├── .codeedict/                        ← git ❌（.gitignore 一行，独立仓）
+├── .codeedict/                        ← git ❌（.git/info/exclude 本地忽略，独立仓）
 │   ├── project-context.md             ← git ❌  架构地图 + 工具链（开发操作手册）
 │   ├── tasks/<taskId>-tasks.md
 │   ├── task-tracker.md
@@ -40,7 +40,9 @@ Codeedict 使用两级存储：全局 `~/.codeedict/` + 项目目录。
 └── src/ ...
 ```
 
-### .codeedict 部分（开发过程文档，独立仓，gitignore 不进主仓库）
+### .codeedict 部分（开发过程文档，独立仓，`.git/info/exclude` 本地忽略、不进主仓库）
+
+> 忽略写在 git 目录的 `info/exclude` 里，**不改主仓库 `.gitignore`**：只在本机生效，仓库文件零改动，协作者不受影响。
 
 | 路径 | 职责 | 读写方 |
 |------|------|--------|

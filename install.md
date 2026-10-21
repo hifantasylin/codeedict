@@ -36,7 +36,9 @@ AI自行判断当前使用的 AI 编辑器，无需询问用户：
 | CodeBuddy | `~/.codebuddy/agents/codeedict/` |
 | VS Code | `%APPDATA%\Code\User\agents\codeedict\` |
 
-构建命令会自动完成：构建 agent 文件、拷贝 `check.js`、拷贝 `templates/`、拷贝 `tools/`、清理旧残留文件。
+构建命令会自动完成：构建 agent 文件、拷贝 `check.js`、拷贝 `templates/`、拷贝 `tools/`、清理旧残留文件、**把审查清单安装到 `~/.codeedict/knowledge/`**。
+
+> `~/.codeedict/knowledge/` 是 coder / reviewer 读清单的实际路径（不是构建目录下的 `templates/knowledge/`）。构建时会覆盖同名文件、保留用户自建的其它清单，因此**升级只需重跑构建命令**。
 
 ### 3. 写入 MCP 配置
 
@@ -127,6 +129,8 @@ AI自行判断当前使用的 AI 编辑器，无需询问用户：
 
 **必做：验证 MCP 服务是否正常。** 执行 `node <build-dir>/check.js transitions analyze`（应返回 JSON 含 `"allowed"` 字段），确保无报错。如果报错（如 BOM 导致的 JSON 解析失败），修复后重试。
 
+**同时检查清单目录**：`ls ~/.codeedict/knowledge/` 应列出 8 个 `.md`（`general-dev.md`、`correctness.md`、`maintainability.md`、`reliability.md`、`security.md`、`performance.md`、`android.md`、`rust-dev.md`）。缺失说明构建未完成，重跑构建命令。
+
 验证通过后告知：
 
 | 平台 | 使用方式 |
@@ -136,3 +140,20 @@ AI自行判断当前使用的 AI 编辑器，无需询问用户：
 | VS Code | 安装完成。在 Copilot Chat 中选择 Codeedict agent |
 
 Cursor 用户修改 MCP 配置后需重载窗口（Developer: Reload Window）使 MCP 生效。
+
+## 附：写入边界（无需操作，供了解）
+
+安装本身只写这些位置：
+
+| 位置 | 内容 |
+|------|------|
+| `~/.codebuddy/agents/codeedict/`（或对应平台目录） | agent 定义、`check.js`、`templates/`、`tools/` |
+| `~/.codebuddy/mcp.json` | `codeedict-gate` 服务配置 |
+| `~/.codeedict/knowledge/` | 审查清单 |
+| `~/.codeedict/projects.json` | 首次初始化项目时创建 |
+
+**不写项目仓库里的任何文件**。后续在项目里初始化时：
+
+- 开发过程文档只落在 `<rootPath>/.codeedict/`
+- 忽略写在 `<git-dir>/info/exclude`（**不改项目 `.gitignore`**），只在本机生效，`git status` 不会多出无关改动
+- 不向源码目录写 `MODULE.md` 一类的模块级文档
